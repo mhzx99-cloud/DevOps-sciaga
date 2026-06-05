@@ -1,1 +1,2 @@
-This is a test, Iam testing testing testing.
+This is a test, I am testing testing testing.
+ale jest coraz lepiej :)
