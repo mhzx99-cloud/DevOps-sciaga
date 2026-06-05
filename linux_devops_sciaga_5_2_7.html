@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux, DevOps, SQL — Ściąga Rekrutacyjna</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #161b27;
+    --bg3: #1e2535;
+    --bg4: #252d3f;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.15);
+    --text: #e8edf5;
+    --muted: #8492a6;
+    --muted2: #6b7a8d;
+    --accent: #3b82f6;
+    --accent2: #1d4ed8;
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --purple: #8b5cf6;
+    --teal: #14b8a6;
+    --pink: #ec4899;
+    --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --sans: 'Inter', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+
+  /* HEADER */
+  header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 1.5rem 2rem; display: flex; align-items: center; gap: 1rem; position: sticky; top: 0; z-index: 100; }
+  .logo { font-family: var(--mono); font-size: 1.1rem; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+  .logo span { color: var(--green); }
+  .subtitle { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+  .header-stats { margin-left: auto; text-align: right; }
+  .header-stats .num { font-family: var(--mono); font-size: 1.2rem; font-weight: 700; color: var(--text); }
+  .header-stats .lbl { font-size: 0.7rem; color: var(--muted2); }
+
+  /* CONTROLS */
+  .controls { padding: 1.25rem 2rem; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+  .search-wrap { position: relative; width: 100%; display: flex; gap: 6px; }
+  .search-inner { position: relative; flex: 1; }
+  .search-inner svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+  input[type=text] { width: 100%; background: var(--bg3); border: 1px solid var(--border); color: var(--text); font-family: var(--sans); font-size: 0.875rem; padding: 8px 10px 8px 34px; border-radius: 8px; outline: none; transition: border-color .2s; }
+  input[type=text]:focus { border-color: var(--accent); }
+  input[type=text]::placeholder { color: var(--muted2); }
+  .ai-btn { background: linear-gradient(135deg, #3b82f6, #8b5cf6); border: none; color: #fff; font-size: 0.75rem; font-family: var(--sans); padding: 0 14px; border-radius: 8px; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 5px; transition: opacity .15s; height: 36px; }
+  .ai-btn:hover { opacity: 0.85; }
+  .ai-btn:disabled { opacity: 0.5; cursor: default; }
+  /* SEARCH PANEL */
+  #ai-panel { display: none; background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 2rem 1.25rem; }
+  #ai-panel.open { display: block; }
+  .ai-result { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-top: 10px; font-size: 0.82rem; line-height: 1.65; color: var(--text); position: relative; }
+  .ai-label { font-size: 0.65rem; font-family: var(--mono); color: var(--purple); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .ai-spinner { width: 10px; height: 10px; border: 2px solid rgba(139,92,246,0.3); border-top-color: var(--purple); border-radius: 50%; animation: spin .6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ai-close { position: absolute; top: 10px; right: 12px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 5px; border-radius: 4px; }
+  .ai-close:hover { color: var(--text); background: var(--bg4); }
+  /* Smart search result cards */
+  .sr-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 0.8rem; color: var(--muted); position: relative; }
+  .sr-header strong { color: var(--text); }
+  .sr-synonyms { font-size: 0.7rem; color: var(--muted); margin-bottom: 10px; }
+  .sr-synonyms code { font-family: var(--mono); font-size: 0.68rem; background: var(--bg4); color: #93bbfd; padding: 1px 5px; border-radius: 4px; border: 1px solid var(--border); margin: 0 2px; }
+  .sr-card { background: var(--bg4); border: 1px solid var(--border); border-left: 3px solid var(--acc, #3b82f6); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+  .sr-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .sr-num { font-size: 0.65rem; font-family: var(--mono); background: var(--acc,#3b82f6); color: #fff; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .sr-sec { font-size: 0.7rem; font-family: var(--mono); color: var(--muted); }
+  .sr-cat { font-size: 0.65rem; font-family: var(--mono); padding: 1px 7px; border-radius: 10px; border: 1px solid; }
+  .sr-q { font-size: 0.82rem; font-weight: 500; color: var(--text); margin-bottom: 4px; line-height: 1.4; }
+  .sr-a { font-size: 0.76rem; color: var(--muted2); line-height: 1.5; }
+  .sr-card mark { background: rgba(251,191,36,0.25); color: var(--text); border-radius: 2px; padding: 0 1px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-size: 0.7rem; font-family: var(--mono); padding: 4px 10px; border-radius: 20px; cursor: pointer; border: 1px solid; transition: all .15s; user-select: none; white-space: nowrap; }
+  .btn-clear { font-size: 0.7rem; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-family: var(--sans); transition: all .15s; }
+  .btn-clear:hover { border-color: var(--border2); color: var(--text); }
+
+  /* LAYOUT */
+  main { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 120px); }
+
+  /* SIDEBAR */
+  aside { background: var(--bg2); border-right: 1px solid var(--border); padding: 1rem; overflow-y: auto; position: sticky; top: 113px; height: calc(100vh - 113px); }
+  .side-label { font-size: 0.65rem; font-family: var(--mono); color: var(--muted2); text-transform: uppercase; letter-spacing: 1px; padding: 0 8px; margin: 8px 0 4px; }
+  .side-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; transition: background .15s; font-size: 0.8rem; color: var(--muted); }
+  .side-item:hover { background: var(--bg3); color: var(--text); }
+  .side-item.active { background: var(--bg4); color: var(--text); }
+  .side-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .side-count { margin-left: auto; font-family: var(--mono); font-size: 0.65rem; color: var(--muted2); }
+
+  /* CONTENT */
+  .content { padding: 1.5rem 2rem; }
+  .result-bar { font-size: 0.75rem; color: var(--muted); font-family: var(--mono); margin-bottom: 1rem; }
+  .no-results { text-align: center; color: var(--muted); padding: 4rem; font-size: 0.9rem; }
+
+  /* SECTIONS */
+  .section { margin-bottom: 1rem; }
+  .section-header { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; cursor: pointer; display: flex; align-items: center; gap: 10px; user-select: none; transition: border-color .15s; }
+  .section-header:hover { border-color: var(--border2); }
+  .section-header.open { border-radius: 10px 10px 0 0; border-bottom-color: transparent; }
+  .sec-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .sec-title { font-size: 0.9rem; font-weight: 600; flex: 1; }
+  .sec-cat { font-size: 0.65rem; font-family: var(--mono); padding: 2px 8px; border-radius: 10px; border: 1px solid; }
+  .sec-qcount { font-family: var(--mono); font-size: 0.7rem; color: var(--muted2); }
+  .chevron { color: var(--muted); font-size: 12px; transition: transform .2s; }
+  .section-header.open .chevron { transform: rotate(180deg); }
+
+  .section-body { display: none; border: 1px solid var(--border); border-top: none; border-radius: 0 0 10px 10px; overflow: hidden; }
+  .section-body.open { display: block; }
+
+  .qa-item { border-bottom: 1px solid var(--border); padding: 14px 16px; }
+  .qa-item:last-child { border-bottom: none; }
+  .qa-item:hover { background: rgba(255,255,255,0.02); }
+  .q-row { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px; cursor: pointer; }
+  .q-badge { font-size: 0.6rem; font-family: var(--mono); padding: 2px 6px; border-radius: 4px; background: rgba(59,130,246,0.15); color: #93bbfd; border: 1px solid rgba(59,130,246,0.25); flex-shrink: 0; margin-top: 2px; }
+  .q-text { font-size: 0.85rem; font-weight: 500; color: var(--text); line-height: 1.5; }
+  .a-row { display: none; padding-left: 0; }
+  .a-row.open { display: block; }
+  .a-text { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+  .a-text code { font-family: var(--mono); font-size: 0.75rem; background: var(--bg4); color: #93bbfd; padding: 1px 5px; border-radius: 4px; border: 1px solid var(--border); }
+  .tip-badge { display: inline-block; font-size: 0.65rem; font-family: var(--mono); padding: 1px 6px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
+  .tip-cmd { background: rgba(20,184,166,0.15); color: #5eead4; border: 1px solid rgba(20,184,166,0.25); }
+  .tip-warn { background: rgba(245,158,11,0.15); color: #fcd34d; border: 1px solid rgba(245,158,11,0.25); }
+  .tip-info { background: rgba(139,92,246,0.15); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.25); }
+
+  /* PROGRESS */
+  .progress-bar { height: 2px; background: var(--bg4); border-radius: 2px; margin-top: 4px; }
+  .progress-fill { height: 100%; border-radius: 2px; transition: width .3s; }
+
+  /* FOOTER */
+  footer { border-top: 1px solid var(--border); padding: 1rem 2rem; text-align: center; font-size: 0.7rem; color: var(--muted2); font-family: var(--mono); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+
+  @media (max-width: 768px) {
+    main { grid-template-columns: 1fr; }
+    aside { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    header { padding: 1rem; }
+    .controls { padding: 1rem; }
+    .content { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">linux<span>_devops</span>.sh</div>
+    <div class="subtitle">Ściąga rekrutacyjna · Linux, Cloud, DevOps, Security, PostgreSQL, Jenkins, Kubernetes</div>
+  </div>
+  <div class="header-stats">
+    <div class="num" id="hdr-topics">0</div>
+    <div class="lbl">tematów</div>
+  </div>
+  <div class="header-stats" style="margin-left:1rem">
+    <div class="num" id="hdr-questions">0</div>
+    <div class="lbl">pytań</div>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="search-wrap">
+    <div class="search-inner">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="srch" placeholder="np. ansible loadbalancer, linux uprawnienia, docker sieć..." />
+    </div>
+    <button class="ai-btn" id="ai-ask-btn" onclick="smartSearch()">⌕ Szukaj</button>
+    <button class="ai-btn" id="ai-claude-btn" onclick="askClaude()" style="background:linear-gradient(135deg,#7c3aed,#db2777)">✦ Zapytaj AI</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <div class="tags" id="tag-row"></div>
+    <button class="btn-clear" onclick="clearFilters()">✕ reset</button>
+  </div>
+</div>
+<div id="ai-panel">
+  <div class="ai-label">⌕ wyniki wyszukiwania</div>
+  <div class="ai-result" id="ai-result"><span id="ai-text"></span></div>
+</div>
+
+<main>
+  <aside id="sidebar"></aside>
+  <div class="content">
+    <div class="result-bar" id="result-bar"></div>
+    <div id="grid"></div>
+  </div>
+</main>
+
+<footer>linux_devops_sciaga.html · działa offline · odśwież stronę aby zresetować postęp</footer>
+
+<script>
+const CATS = {
+  "System":     { color: "#10b981", bg: "rgba(16,185,129,0.12)", border: "rgba(16,185,129,0.3)" },
+  "Security":   { color: "#ef4444", bg: "rgba(239,68,68,0.12)",  border: "rgba(239,68,68,0.3)" },
+  "Infra/IaC":  { color: "#3b82f6", bg: "rgba(59,130,246,0.12)", border: "rgba(59,130,246,0.3)" },
+  "Containers": { color: "#8b5cf6", bg: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)" },
+  "Cloud":      { color: "#f59e0b", bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.3)" },
+  "Monitoring": { color: "#14b8a6", bg: "rgba(20,184,166,0.12)", border: "rgba(20,184,166,0.3)" },
+  "Networking": { color: "#ec4899", bg: "rgba(236,72,153,0.12)", border: "rgba(236,72,153,0.3)" },
+  "Storage/HA": { color: "#a78bfa", bg: "rgba(167,139,250,0.12)","border": "rgba(167,139,250,0.3)" },
+  "CI/CD":      { color: "#f97316", bg: "rgba(249,115,22,0.12)",  border: "rgba(249,115,22,0.3)" },
+  "Database":   { color: "#06b6d4", bg: "rgba(6,182,212,0.12)",   border: "rgba(6,182,212,0.3)" }
+};
+
+const DATA = [
+  { title: "Linux / RHEL / CentOS — Mid/Senior", cat: "System", qa: [
+    { q: "Jak działa proces bootowania RHEL od BIOS/UEFI do loginu?", a: "<span class='tip-badge tip-info'>INFO</span> BIOS/UEFI → GRUB2 (<code>/boot/grub2/grub.cfg</code>) → kernel + initramfs (dracut) → kernel init sprzętu → PID 1 (systemd) → default.target → getty/login. Debuguj: <code>systemd-analyze blame</code>, <code>systemd-analyze critical-chain</code>, <code>journalctl -b</code>. Czas bootowania: <code>systemd-analyze time</code>." },
+    { q: "Jak tworzyć własne systemd unit files (service, timer, socket)?", a: "<code>/etc/systemd/system/myapp.service</code>: <code>[Unit] Description=MyApp After=network.target\n[Service] Type=simple ExecStart=/opt/myapp/run.sh Restart=on-failure RestartSec=5 User=myapp EnvironmentFile=/etc/myapp.env\n[Install] WantedBy=multi-user.target</code>. Timer: <code>[Timer] OnCalendar=*-*-* 02:00:00 Persistent=true</code>. Socket activation: <code>.socket</code> unit. <code>systemctl daemon-reload</code> po zmianach." },
+    { q: "Co to systemd Type= i kiedy używać każdego?", a: "<code>simple</code>: domyślny, ExecStart to główny proces. <code>forking</code>: tradycyjny daemon (fork + exit parenta — wymaga PIDFile). <code>oneshot</code>: krótkie zadanie, systemd czeka na zakończenie. <code>notify</code>: serwis sygnalizuje gotowość przez <code>sd_notify()</code>. <code>dbus</code>: gotowość przez D-Bus. <code>idle</code>: czeka na zakończenie innych jobów. Najczęściej: simple lub notify." },
+    { q: "Jak działa dracut i initramfs — kiedy przebudować?", a: "initramfs: tymczasowy rootfs ładowany przed montowaniem /. Zawiera moduły, udev, LVM, LUKS, multipath. Przebuduj po: zmianie sterowników, dodaniu LUKS/LVM. <code>dracut -f /boot/initramfs-$(uname -r).img $(uname -r)</code>. Debug initramfs: boot z <code>rd.break</code> → shell przed montowaniem /sysroot. <code>lsinitrd</code> — zawartość obrazu." },
+    { q: "Co to DNF modules i application streams (RHEL 8+)?", a: "<span class='tip-badge tip-info'>INFO</span> AppStreams: równoległe wersje pakietów (Python 3.9 i 3.11 jednocześnie). <code>dnf module list</code>. Włącz: <code>dnf module enable python39:3.9</code>. Zainstaluj profil: <code>dnf module install nodejs:18/development</code>. Reset: <code>dnf module reset python39</code>. Moduły zastąpiły Software Collections (SCL) z RHEL 7." },
+    { q: "Jak działa GRUB2 i jak naprawić uszkodzony bootloader?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> Config: <code>/etc/default/grub</code> + <code>grub2-mkconfig -o /boot/grub2/grub.cfg</code>. Naprawa z live CD: <code>mount /dev/sda2 /mnt && for d in dev proc sys run; do mount --bind /$d /mnt/$d; done && chroot /mnt && grub2-install /dev/sda && grub2-mkconfig -o /boot/grub2/grub.cfg</code>. UEFI: target <code>x86_64-efi</code>, output <code>/boot/efi/EFI/redhat/grub.cfg</code>." },
+    { q: "Co to cgroups v2 i jak zarządzać zasobami procesów?", a: "cgroups v2: unified hierarchy, jeden mount <code>/sys/fs/cgroup</code>. <code>systemctl set-property nginx.service CPUQuota=50% MemoryMax=512M IOWriteBandwidthMax='/dev/sda 10M'</code>. Sprawdź: <code>systemd-cgls</code>, <code>systemd-cgtop</code>. <code>cat /sys/fs/cgroup/system.slice/nginx.service/memory.current</code>. RHEL 9: cgroups v2 domyślny, RHEL 8: v1 domyślny." },
+    { q: "Jak działa Linux namespace isolation?", a: "7 typów: <code>pid</code> (izolacja procesów), <code>net</code> (sieć, routing, iptables), <code>mnt</code> (mounty, pivotroot), <code>uts</code> (hostname/domainname), <code>ipc</code> (semafory, kolejki), <code>user</code> (UID/GID mapping — rootless), <code>cgroup</code> (cgroup root). <code>unshare --pid --fork --mount-proc bash</code>. <code>lsns -p PID</code>. <code>nsenter -t PID --net ip addr</code>." },
+    { q: "Jak zarządzać kernel modules — ładowanie, blacklistowanie, parametry?", a: "<span class='tip-badge tip-cmd'>CMD</span> Lista: <code>lsmod</code>. Info: <code>modinfo -p module</code> (parametry). Załaduj z parametrem: <code>modprobe module param=value</code>. Trwałe: <code>/etc/modules-load.d/</code> i <code>/etc/modprobe.d/options.conf: options module param=value</code>. Blacklist: <code>/etc/modprobe.d/blacklist.conf</code>. Sprawdź używane parametry: <code>systool -v -m module</code>." },
+    { q: "Jak działa journald — konfiguracja, persistent storage, forwarding?", a: "<code>/etc/systemd/journald.conf</code>: <code>Storage=persistent</code> (domyślnie auto — persistent jeśli <code>/var/log/journal</code> istnieje). <code>SystemMaxUse=2G</code>, <code>SystemKeepFree=1G</code>. Forwarding: <code>ForwardToSyslog=yes</code>, <code>ForwardToKMsg=yes</code>. Export: <code>journalctl -o export | gzip > logs.gz</code>. Remote: <code>systemd-journal-remote</code>." },
+    { q: "Jak efektywnie przeszukiwać journald?", a: "<code>journalctl -u nginx -f</code>. <code>-b -1</code> (poprzedni boot). <code>--since '1 hour ago'</code>. <code>-p err..emerg</code>. <code>-o json-pretty</code>. <code>_UID=1000</code> (per użytkownik). <code>_SYSTEMD_UNIT=nginx.service + PRIORITY=3</code> (AND). <code>journalctl -k</code> (kernel). <code>--disk-usage</code>. Vacuum: <code>journalctl --vacuum-time=7d</code>." },
+    { q: "Co to tuned i jak tworzyć własne profile?", a: "Daemon zarządzający profilami wydajności. Profile: <code>throughput-performance</code>, <code>latency-performance</code>, <code>virtual-guest</code>, <code>oracle</code>, <code>mssql</code>. Własny profil: <code>/etc/tuned/myprofil/tuned.conf: [main] include=throughput-performance\n[sysctl] vm.swappiness=5\n[disk] elevator=deadline</code>. <code>tuned-adm recommend</code> sugeruje profil. <code>tuned-adm active</code>." },
+    { q: "Jak debugować problem z zawieszonym procesem (state D)?", a: "<span class='tip-badge tip-cmd'>CMD</span> <code>D</code> state = uninterruptible sleep (czeka na I/O). <code>cat /proc/PID/wchan</code> — gdzie czeka. <code>cat /proc/PID/stack</code> — kernel stack. <code>strace -p PID</code> — syscalle. <code>lsof -p PID</code> — otwarte zasoby. Jeśli I/O: <code>iostat -xz 1</code>, sprawdź storage. NFS hang: <code>nfsiostat</code>, <code>rpcinfo</code>. Często: hung NFS mount lub storage timeout." },
+    { q: "Co to NUMA i jak wpływa na wydajność?", a: "Wieloprocesorowe systemy — dostęp do lokalnej pamięci CPU szybszy niż zdalnej. <code>numactl --hardware</code>. <code>numastat -p PID</code> — local vs remote hits. <code>numastat -m</code> — per-node memory. Problemy: high numa_miss = procesy alokują na odległym node. Fix: <code>numactl --cpunodebind=0 --membind=0 ./app</code>. <code>numad</code>: automatyczne balansowanie. Kernel: <code>numa_balancing=1</code>." },
+    { q: "Jak zarządzać limitami (ulimit, limits.conf, systemd)?", a: "Sesja: <code>ulimit -n 65535</code>. Trwałe PAM: <code>/etc/security/limits.d/90-custom.conf: * soft nofile 65535\n* hard nofile 65535</code>. Systemd service: <code>LimitNOFILE=65535 LimitNPROC=4096 LimitCORE=infinity</code>. Sprawdź proces: <code>cat /proc/PID/limits</code>. System max: <code>sysctl fs.file-max</code>. <code>fs.nr_open</code> to absolutne maksimum per proces." },
+    { q: "Jak działa OOM Killer — diagnostyka i ochrona procesów?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> Kernel wybiera ofiarę po <code>oom_score</code> (wyższy = bardziej narażony). Sprawdź: <code>cat /proc/PID/oom_score</code>. Chroń: <code>echo -1000 > /proc/PID/oom_score_adj</code>. Systemd: <code>OOMScoreAdjust=-500</code>. Diagnostyka: <code>dmesg | grep -i 'oom\|killed'</code>. Overcommit policy: <code>vm.overcommit_memory=2</code> zapobiega nadmiernemu allokowaniu." },
+    { q: "Co to RHEL Subscription Manager i Red Hat Satellite?", a: "<span class='tip-badge tip-cmd'>CMD</span> Rejestracja: <code>subscription-manager register</code>. Attach: <code>subscription-manager attach --auto</code>. Enable repo: <code>subscription-manager repos --enable=rhel-9-appstream-rpms</code>. Satellite: on-premise proxy dla subskrypcji + patch management + provisioning. <code>subscription-manager config --server.hostname=satellite.firma.pl</code>. Insights: <code>insights-client --register</code>." },
+    { q: "Jak działają SELinux boolean i audit2allow?", a: "Boolean zmienia politykę bez rekompilacji. <code>getsebool -a | grep httpd</code>. <code>setsebool -P httpd_can_network_connect on</code>. Diagnoza: <code>ausearch -m avc -ts recent | audit2why</code>. Generuj moduł: <code>ausearch -m avc | audit2allow -M mypol && semodule -i mypol.pp</code>. <code>sealert -a /var/log/audit/audit.log</code>. Nigdy nie wyłączaj SELinux — najpierw diagnozuj." },
+    { q: "Jak działają inode i filesystem — co się dzieje przy df vs du?", a: "<code>df -h</code> pokazuje zajętość bloków. <code>du -sh /dir</code> sumuje pliki. Rozbieżność: usunięte pliki trzymane przez otwarte file descriptory (<code>lsof | grep deleted</code>). Inodes: <code>df -i</code> — można zapełnić inody bez zapełnienia bloków (dużo małych plików). XFS: dynamiczne inody. <code>stat plik</code>: inode, bloki, timestamps (atime/mtime/ctime)." },
+    { q: "Co to extended attributes (xattr) i jak używać?", a: "Metadane poza standardowymi atrybutami pliku. Namespace: user, system, security (SELinux), trusted. <code>setfattr -n user.comment -v 'backup done' plik</code>. <code>getfattr -d plik</code>. Pojemność i immutable: <code>chattr +i plik</code> (immutable — nawet root nie może usunąć). <code>chattr +a plik</code> (append-only dla logów). <code>lsattr plik</code>." },
+    { q: "Jak zarządzać siecią przez NetworkManager (nmcli) zaawansowane?", a: "<span class='tip-badge tip-cmd'>CMD</span> Bond: <code>nmcli con add type bond con-name bond0 bond.options 'mode=802.3ad,miimon=100'</code>. Bridge: <code>nmcli con add type bridge con-name br0</code>. VLAN: <code>nmcli con add type vlan con-name vlan10 dev eth0 id 10</code>. IPv6: <code>nmcli con mod eth0 ipv6.method manual ipv6.addresses 'fd00::1/64'</code>. DNS per connection: <code>ipv4.dns-search 'firma.pl'</code>." },
+    { q: "Co to ip routing i jak zarządzać tablicami routingu?", a: "<code>ip route show table main</code>. Dodaj: <code>ip route add 10.0.0.0/8 via 192.168.1.1 dev eth0</code>. Trwałe: <code>nmcli con mod eth0 +ipv4.routes '10.0.0.0/8 192.168.1.1'</code>. Policy routing (multi-homed): <code>ip rule add from 192.168.2.0/24 table 200</code>. <code>ip route add default via gw table 200</code>. Tablice: <code>/etc/iproute2/rt_tables</code>." },
+    { q: "Jak działa tcpdump — filtrowanie i analiza?", a: "<code>tcpdump -i eth0 -n -w /tmp/cap.pcap 'host 10.0.0.1 and port 443'</code>. Odczyt: <code>tcpdump -r cap.pcap -A</code>. BPF (Berkeley Packet Filter) filtry: <code>tcp[tcpflags] & tcp-syn != 0</code> (tylko SYN). <code>not port 22</code>. Verbose: <code>-vvv</code>. Wireshark: otwórz pcap. <code>tcpdump -i any</code> wszystkie interfejsy. Użyteczne: <code>tcpdump -l | tee /tmp/log</code>." },
+    { q: "Jak zarządzać patchowaniem systemu w skali (wiele serwerów)?", a: "Red Hat Satellite / Foreman: centralne zarządzanie patchami, harmonogram, Content Views (snapshot repozytoriów). Ansible: <code>dnf: name='*' state=latest</code> z odpowiednim harmonogramem. RHEL Systems Insights: automatyczna detekcja CVE. Strategia: patch w dev → staging → prod. Maintenance windows. <code>needs-restarting -r</code> czy reboot wymagany po patchu." },
+    { q: "Co to kdump i jak skonfigurować crash dump?", a: "kdump: mechanizm zrzutu pamięci przy kernel panic. Instalacja: <code>dnf install kexec-tools && systemctl enable kdump</code>. Konfiguracja: <code>/etc/kdump.conf: path /var/crash\ncore_collector makedumpfile -l --message-level 1 -d 31</code>. Zarezerwuj pamięć: <code>/etc/default/grub: crashkernel=auto</code>. Analiza: <code>crash /boot/vmlinux-$(uname -r) /var/crash/*/vmcore</code>." },
+    { q: "Co to systemd-resolved i jak debugować DNS?", a: "<span class='tip-badge tip-cmd'>CMD</span> <code>resolvectl status</code> — aktualny DNS per interfejs. <code>resolvectl query example.com</code>. Cache: <code>resolvectl flush-caches</code>. Stats: <code>resolvectl statistics</code>. LLMNR, mDNS: wyłącz jeśli zbędne (<code>LLMNR=no</code> w <code>/etc/systemd/resolved.conf</code>). <code>/etc/resolv.conf</code>: symlink do <code>/run/systemd/resolve/stub-resolv.conf</code>. Override DNS: <code>nmcli con mod eth0 ipv4.dns 1.1.1.1</code>." },
+    { q: "Jak działa PAM — pisanie własnych polityk?", a: "Stack PAM: auth (autentykacja), account (warunki konta), password (zmiana hasła), session (środowisko). <code>/etc/pam.d/sshd</code>. Reguła: <code>required/requisite/sufficient/optional modul args</code>. Przykład MFA: <code>auth required pam_google_authenticator.so</code>. <code>pam_faillock</code>: <code>auth required pam_faillock.so preauth deny=5 unlock_time=600</code>. Test: <code>pamtester sshd user authenticate</code>." },
+    { q: "Co to coredump i jak analizować crash aplikacji?", a: "Coredump: zrzut pamięci procesu przy SIGSEGV/crash. Systemd: przechowuje w <code>/var/lib/systemd/coredump/</code>. Lista: <code>coredumpctl list</code>. Analiza: <code>coredumpctl gdb PID</code>. <code>bt</code> w gdb = backtrace. Włącz: <code>ulimit -c unlimited</code> lub systemd <code>DefaultLimitCORE=infinity</code>. Pattern: <code>sysctl kernel.core_pattern='|/usr/lib/systemd/systemd-coredump %P %u %g %s %t %c %h'</code>." },
+    { q: "Jak zarządzać time i NTP w RHEL?", a: "<code>timedatectl status</code>. Strefa: <code>timedatectl set-timezone Europe/Warsaw</code>. NTP: <code>timedatectl set-ntp true</code> (chrony domyślnie). <code>/etc/chrony.conf: server ntp.firma.pl iburst</code>. Wymusz sync: <code>chronyc makestep</code>. Status: <code>chronyc tracking</code>, <code>chronyc sources -v</code>. PTP (hardware timestamps): <code>ptp4l</code> dla nanosekund precyzji." },
+    { q: "Co to multipath i jak skonfigurować?", a: "Multipath I/O: wiele ścieżek do tego samego storage (HA + load balancing). <code>dnf install device-mapper-multipath && mpathconf --enable</code>. <code>/etc/multipath.conf</code>: <code>defaults { polling_interval 10 }</code>. <code>multipathd -k'show paths'</code>. <code>multipath -ll</code>. Polityki: <code>failover</code>, <code>multibus</code> (round-robin), <code>group_by_prio</code>. WWN dla SAN: <code>cat /sys/class/fc_host/host*/port_name</code>." },
+    { q: "Jak działa rsyslog i jak agregować logi centralnie?", a: "<span class='tip-badge tip-cmd'>CMD</span> <code>/etc/rsyslog.conf</code>: reguły <code>facility.severity action</code>. Forward UDP: <code>*.* @centrallog:514</code>. Forward TCP/TLS: <code>*.* @@centrallog:514</code>. Serwer centralny: <code>module(load='imudp') input(type='imudp' port='514')</code>. Template per host: <code>/var/log/remote/%HOSTNAME%/%PROGRAMNAME%.log</code>. Alternatywa: Fluentd/Fluent Bit dla K8s." },
+    { q: "Co to udev i jak pisać własne reguły?", a: "Dynamiczny menedżer urządzeń. Reguły w <code>/etc/udev/rules.d/</code>. Przykład stała nazwa dysku: <code>SUBSYSTEM==\"block\", ATTRS{serial}==\"SN123\", SYMLINK+=\"data_disk\"</code>. Przykład uprawnienia USB: <code>SUBSYSTEM==\"usb\", ATTR{idVendor}==\"1234\", MODE=\"0660\", GROUP=\"plugdev\"</code>. Reload: <code>udevadm control --reload && udevadm trigger</code>. Debug: <code>udevadm monitor</code>." },
+    { q: "Jak analizować wydajność I/O?", a: "<code>iostat -xz 1</code>: <code>%util</code> (nasycenie), <code>await</code> (latencja), <code>r/s w/s</code> (IOPS). <code>iotop -ao</code> per proces. <code>blktrace -d /dev/sda -o - | blkparse -i -</code>: szczegółowa analiza. <code>fio</code>: benchmarking. <code>ioping</code>: latencja. Sprawdź scheduler: <code>cat /sys/block/sda/queue/scheduler</code>. NVMe: <code>nvme smart-log /dev/nvme0</code>." },
+    { q: "Co to btrfs i kiedy używać zamiast XFS/ext4?", a: "Btrfs: CoW filesystem, natywne snapshoty, RAID wbudowany, checksums, subvolumes, send/receive. Używaj gdy: snapshoty (<code>btrfs subvolume snapshot</code>), deduplikacja, self-healing. XFS: produkcja enterprise, duże pliki, dobra wydajność. ext4: stabilny, szeroka kompatybilność. RHEL 8+: XFS domyślny, Btrfs nie wspierany produkcyjnie (Fedora tak)." },
+    { q: "Jak zarządzać rozszerzeniami XFS?", a: "<span class='tip-badge tip-cmd'>CMD</span> XFS nie wspiera shrink. Grow: <code>xfs_growfs /mountpoint</code> (po rozszerzeniu LV). Naprawa: <code>xfs_repair /dev/sdb1</code> (tylko unmounted). Quota: <code>mount -o uquota,gquota && xfs_quota -x -c 'limit -u bhard=10g jan /data'</code>. Dump/restore: <code>xfsdump</code>/<code>xfsrestore</code>. Defrag: <code>xfs_fsr</code>. Info: <code>xfs_info /mountpoint</code>." },
+    { q: "Co to Linux Huge Pages — transparent vs explicit?", a: "Transparent Huge Pages (THP): kernel automatycznie łączy strony 4K w 2MB. Dla baz danych (Oracle, PostgreSQL, MySQL) często problem: <code>echo madvise > /sys/kernel/mm/transparent_hugepage/enabled</code>. Explicit hugepages: <code>vm.nr_hugepages=512</code> w sysctl, aplikacja musi jawnie używać. KVM gości: THP poprawia wydajność hiperwizora. <code>cat /proc/meminfo | grep Huge</code>." },
+    { q: "Jak działa linux performance profiling z perf?", a: "<code>perf stat ./app</code> — hardware counters (IPC, cache misses). <code>perf record -g ./app && perf report</code> — CPU profiling z call graph. <code>perf top</code> — live. <code>perf trace -p PID</code> — syscall trace (szybszy niż strace). Flame graph: <code>perf script | stackcollapse-perf.pl | flamegraph.pl > out.svg</code>. <code>perf mem</code> — memory access profiling. Wymaga: <code>kernel.perf_event_paranoid=1</code>." },
+    { q: "Co to eBPF i jak używać bpftrace?", a: "eBPF: sandboxowane programy w kernelu bez modyfikacji kodu. <code>bpftrace -e 'tracepoint:syscalls:sys_enter_open { printf(\"%s %s\\n\", comm, str(args->filename)); }'</code>. Gotowe narzędzia (bcc-tools): <code>execsnoop, opensnoop, tcpconnect, biolatency, runqlat, cachetop</code>. Profiling: <code>profile-bpfcc -F 99 -p PID 30</code>. Bez overhead jak strace — bezpieczne na produkcji." },
+    { q: "Co to control groups freezer i jak zatrzymać grupę procesów?", a: "<code>systemctl freeze nginx.service</code> — zawiesza wszystkie procesy serwisu (SIGSTOP). <code>systemctl thaw nginx.service</code> — wznawia. Manualnie: <code>echo FROZEN > /sys/fs/cgroup/system.slice/nginx.service/cgroup.freeze</code>. Użycie: maintenance bez killowania procesów, snapshot VM (QEMU używa freezera). <code>systemd-run --scope --slice=test.slice cmd</code> — tymczasowy scope." },
+    { q: "Jak działa wirtualna pamięć i page fault?", a: "Każdy proces ma własną przestrzeń adresową (VMAs — Virtual Memory Areas). Page fault: dostęp do strony nieładowanej w RAM → kernel ładuje z dysku/zeruje. Minor fault: strona jest w pamięci (CoW po fork). Major fault: odczyt z dysku (I/O). <code>cat /proc/PID/smaps</code> — szczegóły VMAs. <code>vmstat -w 1</code>: <code>si/so</code>=swap, <code>bi/bo</code>=block I/O." },
+    { q: "Co to POSIX shared memory i IPC?", a: "Mechanizmy IPC: shared memory (<code>shm_open</code>), semafory (<code>sem_open</code>), kolejki komunikatów (<code>mq_open</code>). Sprawdź: <code>ipcs -a</code> (System V IPC). POSIX: <code>ls /dev/shm/</code>. Bazy danych używają SHM dla shared_buffers. Czyść: <code>ipcrm -m ID</code>. Limits: <code>kernel.shmmax</code>, <code>kernel.shmall</code>. <code>/proc/sys/kernel/shm*</code>." },
+    { q: "Jak zarządzać certyfikatami systemowymi (trust store) w RHEL?", a: "<span class='tip-badge tip-cmd'>CMD</span> Trust store: <code>/etc/pki/ca-trust/</code>. Dodaj CA: skopiuj <code>.crt</code> do <code>/etc/pki/ca-trust/source/anchors/</code> + <code>update-ca-trust</code>. Sprawdź: <code>trust list</code>. Usuń: <code>/etc/pki/ca-trust/source/blacklist/</code>. Java keystore osobny: <code>keytool -importcert</code>. <code>openssl s_client -connect host:443 -CApath /etc/ssl/certs</code> — weryfikuj." },
+    { q: "Jak analizować i rozwiązywać problemy z NFS?", a: "<code>showmount -e nfsserver</code> — eksporty. <code>nfsstat -c</code> — statystyki klienta. <code>nfsiostat 1</code> — I/O per mount. Hung mount: <code>mount -o soft,timeo=30,retrans=3</code> (soft — timeout zamiast wiecznego czekania). <code>rpcinfo -p nfsserver</code> — sprawdź RPC. Wersja: <code>mount -t nfs4</code>. Kerberos: <code>klist, kinit</code>. Debug: <code>rpcdebug -m nfs -s all</code>." },
+    { q: "Co to systemd-nspawn i jak działa w porównaniu do Docker?", a: "Lekkie kontenery oparte o namespaces, bez daemona. <code>systemd-nspawn -D /var/lib/machines/mycontainer</code>. Boot: <code>systemd-nspawn -b -D /var/lib/machines/mycontainer</code>. Zarządzanie: <code>machinectl start/stop/shell mycontainer</code>. Sieć: <code>--network-bridge=br0</code>. Głównie dev/testing. Docker: lepsza izolacja, ecosystem, OCI images. nspawn: prostszy, tight systemd integration." },
+    { q: "Jak działają file capabilities vs SUID — kiedy co używać?", a: "SUID (<code>chmod u+s binary</code>): całe uprawnienia właściciela przy wykonaniu — niebezpieczne (jeśli właściciel root = pełny root). Capabilities: granularne, np. <code>cap_net_bind_service</code> pozwala bindować port <1024 bez root. <code>setcap cap_net_bind_service=ep /usr/bin/node</code>. <code>getcap -r / 2>/dev/null</code> — znajdź wszystkie. Zasada: zawsze capabilities > SUID." },
+    { q: "Co to Linux audit framework i jak pisać reguły?", a: "auditd rejestruje zdarzenia na poziomie kernela. Reguły: <code>-w /etc/passwd -p wa -k passwd_mod</code>. Syscall: <code>-a always,exit -F arch=b64 -S execve -k exec_commands</code>. <code>-F uid=0</code> — tylko root. Szukaj: <code>ausearch -k exec_commands -ts today</code>. Raport: <code>aureport -x --summary</code>. RHEL: domyślne reguły CIS w <code>/etc/audit/rules.d/</code>." },
+    { q: "Jak działa Linux scheduling i klasy priorytetów?", a: "CFS (Completely Fair Scheduler): domyślny, sprawiedliwy podział CPU. Priorytety nice: -20 (najwyższy) do 19 (najniższy). RT (real-time): <code>SCHED_FIFO</code> i <code>SCHED_RR</code> mają priorytet nad CFS. <code>chrt -f 50 ./app</code> — ustaw FIFO RT. <code>taskset -c 0,1 ./app</code> — CPU affinity. Sprawdź: <code>chrt -p PID</code>. Latency: <code>cyclictest</code> dla RT kerneli." },
+    { q: "Co to kernel live patching (kpatch) w RHEL?", a: "<span class='tip-badge tip-info'>INFO</span> Patchowanie kernela bez rebootu. RHEL: <code>kpatch</code> lub Kernel Live Patching przez subscription. <code>dnf install kpatch-patch-$(uname -r | tr - _)</code>. <code>kpatch list</code>. Ograniczenia: tylko security patches, nie wszystkie CVE obsługiwane. Wymaga aktywnej RHEL subscription. Zscaler Livepatch (Ubuntu), Oracle Ksplice — alternatywy dla innych distros." },
+    { q: "Jak skonfigurować bonding i sprawdzić failover?", a: "<span class='tip-badge tip-cmd'>CMD</span> LACP (802.3ad): <code>nmcli con add type bond con-name bond0 bond.options 'mode=802.3ad,miimon=100,lacp_rate=fast'</code>. Dodaj interfejsy: <code>nmcli con add type ethernet ifname eth0 master bond0</code>. Sprawdź: <code>cat /proc/net/bonding/bond0</code> — active slave, MII status. Failover test: <code>ip link set eth0 down</code> → sprawdź czy ruch przełączył. <code>bonding_masters</code> w sysfs." },
+    { q: "Jak rozwiązywać problemy z disk I/O wait (iowait)?", a: "Wysoki iowait: CPU czeka na I/O. <code>iostat -xz 1</code>: <code>%util > 80%</code> = dysk saturated. <code>await > 20ms</code> = wolne dyski. <code>iotop -ao</code> — który proces generuje I/O. <code>blktrace + blkparse</code> — szczegóły. Przyczyny: wolny storage, brak cache, dużo losowych I/O, RAID rebuild. Rozwiązanie: SSD, więcej RAM (page cache), async I/O, I/O scheduler." },
+    { q: "Co to rpm i jak zarządzać pakietami poza dnf?", a: "<code>rpm -ivh package.rpm</code>. Sprawdź pliki: <code>rpm -ql package</code>. Który pakiet dostarcza plik: <code>rpm -qf /usr/bin/top</code>. Verify: <code>rpm -V package</code> (sprawdza checksums). Sprawdź skrypty: <code>rpm -q --scripts package</code>. Import GPG: <code>rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat</code>. Baza RPM: <code>/var/lib/rpm/</code>. Rebuild: <code>rpm --rebuilddb</code>." },
+    { q: "Jak zarządzać środowiskami wirtualnymi i izolacją w RHEL?", a: "Containers (podman/docker): pełna izolacja procesu. systemd-nspawn: OS-level container. chroot: uproszczona izolacja FS (nie pełna). virtual env Python: <code>python3 -m venv /opt/myenv</code>. Nix/Guix: deklaratywne środowiska. SCL (RHEL 7): Software Collections. Flatpak: desktop apps. Snap: nie wspierany oficjalnie na RHEL. Podman play kube: K8s pods lokalnie." },
+    { q: "Jak debugować problemy z pamięcią (memory leak, fragmentation)?", a: "<span class='tip-badge tip-cmd'>CMD</span> <code>valgrind --leak-check=full ./app</code>. <code>AddressSanitizer</code>: kompiluj z <code>-fsanitize=address</code>. <code>/proc/PID/smaps_rollup</code>: RSS, PSS, Shared. Fragmentacja: <code>cat /proc/buddyinfo</code>. <code>slabtop</code>: kernel slab allocator. <code>pmap -x PID</code>: memory map. <code>perf mem record</code>. <code>heaptrack</code>: szczegółowy heap profiler. Sprawdź: <code>cat /proc/meminfo | grep -i huge</code>." },
+    { q: "Co to systemd portable services i co-re?", a: "<span class='tip-badge tip-info'>INFO</span> Portable services: self-contained image (DDI — Discoverable Disk Image) z serwisem + dependencies. Attach: <code>portablectl attach myapp.raw</code>. Uruchom: <code>systemctl start myapp</code>. Izolacja przez namespaces + RootImage. Nie wymaga kontenera. <code>systemd-dissect myapp.raw</code>. Przyszłość RHEL: alternatywa dla RPM dla self-contained apps. UKI (Unified Kernel Image) — kernel+initrd+cmdline w jednym pliku." },
+    { q: "Jak działają Linux capabilities w kontekście bezpieczeństwa kontenera?", a: "Kontenery domyślnie mają subset capabilities: DROP ALL + ADD kilka (net_bind, chown, setuid itp.). <code>capsh --print</code> — aktualny zestaw. Niebezpieczne: <code>CAP_SYS_ADMIN</code> (prawie root), <code>CAP_NET_ADMIN</code>, <code>CAP_SYS_PTRACE</code>. Docker: <code>--cap-drop ALL --cap-add NET_BIND_SERVICE</code>. K8s: <code>securityContext.capabilities.drop: [ALL]</code>. Audit: <code>captest</code>." }
+  ]},
+
+  { title: "Linux — Bash Scripting", cat: "System", qa: [
+    { q: "Jak napisać solidny skrypt bash z obsługą błędów?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> Zawsze: <code>#!/bin/bash\nset -euo pipefail</code>. <code>-e</code>: wyjdź przy błędzie, <code>-u</code>: błąd niezdefiniowanej zmiennej, <code>-o pipefail</code>: błąd w pipeline. Trap: <code>trap 'echo ERR line $LINENO' ERR</code>. Cleanup: <code>trap 'rm -f /tmp/lock' EXIT</code>. Lockfile: <code>flock -n /tmp/lock -c './script.sh'</code>. Logi: <code>exec 1> >(tee /var/log/script.log) 2>&1</code>." },
+    { q: "Jak efektywnie przetwarzać pliki i pętle w bash?", a: "<span class='tip-badge tip-cmd'>CMD</span> Poprawna pętla pliku: <code>while IFS= read -r line; do echo \"$line\"; done < plik</code> (nie <code>cat | while read</code>). Pliki z spacjami: <code>find . -name '*.log' -print0 | xargs -0 -P8 process</code>. Równoległy: <code>parallel -j8 gzip ::: *.log</code>. Arrays: <code>arr=(a b c); for x in \"${arr[@]}\"; do ...; done</code>. Associative: <code>declare -A map; map[key]=val; echo ${map[key]}</code>." },
+    { q: "Jak debugować skrypt bash?", a: "<code>bash -x script.sh</code> — trace każdej komendy. <code>bash -n script.sh</code> — syntax check. Sekcja debug: <code>set -x</code>...<code>set +x</code>. Lepsza diagnostyka: <code>PS4='+(${BASH_SOURCE}:${LINENO}): '</code>. <code>declare -p zmienna</code> — wartość. Static analysis: <code>shellcheck script.sh</code> (wykrywa typowe błędy). <code>strace -e trace=file -p PID</code> — co otwiera. Sprawdzaj <code>$?</code> po każdej ważnej komendzie." },
+    { q: "Jak zarządzać procesami w tle (background jobs)?", a: "<code>komenda &</code> tło. <code>PID=$!</code> PID ostatniego bg. <code>wait $PID</code> czekaj. <code>jobs -l</code> lista. <code>disown %1</code> odepnij od terminala. <code>nohup cmd &</code> odporna na SIGHUP. tmux/screen dla trwałych sesji. <code>kill -0 $PID 2>/dev/null</code> sprawdź czy żyje. Parallel z kontrolą: <code>sem --id JOBGROUP -j4 cmd; sem --id JOBGROUP --wait</code>." },
+    { q: "Jak używać funkcji i modularyzacji w bash?", a: "<code>function validate() { local input=$1; [[ -z $input ]] && return 1; echo \"$input\"; }</code>. <code>local</code> dla zmiennych lokalnych — zawsze używaj. Source: <code>source lib/helpers.sh</code> lub <code>. lib/helpers.sh</code>. Return codes: 0=sukces, 1-255=błąd. <code>readonly VAR=wartość</code> dla stałych. Sprawdź: <code>declare -f function_name</code>. Eksport: <code>export -f function_name</code> dla subshell." },
+    { q: "Jak używać pętli w bash?", a: "<span class='tip-badge tip-cmd'>CMD</span> <strong>for po liście:</strong> <code>for item in a b c; do echo $item; done</code>. <strong>for po zakresie:</strong> <code>for i in {1..5}; do echo $i; done</code>. <strong>for C-style (jak w C/Java):</strong> <code>for ((i=0; i&lt;10; i++)); do echo $i; done</code>. <strong>for po plikach:</strong> <code>for f in /var/log/*.log; do echo $f; done</code>. <strong>for po wyjściu komendy:</strong> <code>for pid in $(pgrep nginx); do kill $pid; done</code>. <strong>while — dopóki warunek prawdziwy:</strong> <code>while [[ $count -lt 5 ]]; do echo $count; ((count++)); done</code>. <strong>while czyta plik linia po linii:</strong> <code>while IFS= read -r line; do echo &quot;$line&quot;; done &lt; plik.txt</code> — poprawna metoda (nie <code>cat | while</code>). <strong>until — dopóki warunek fałszywy (odwrotność while):</strong> <code>until ping -c1 serwer &amp;&gt;/dev/null; do sleep 5; done</code> — czekaj aż serwer odpowie. <strong>break/continue:</strong> <code>break</code> wychodzi z pętli, <code>continue</code> przechodzi do następnej iteracji. Kiedy co: <code>for</code> gdy znasz liczbę iteracji lub listę, <code>while</code> gdy czekasz na warunek lub czytasz plik, <code>until</code> gdy czekasz aż coś zadziała." },
+    { q: "Co to declare i jak typować zmienne w bash?", a: "<span class='tip-badge tip-info'>INFO</span> Bash domyślnie traktuje wszystko jako string — <code>declare</code> pozwala nadać zmiennej typ lub właściwość. <strong>Typy:</strong> <code>declare -i liczba=5</code> — integer (arytmetyka bez <code>$(())</code>: <code>liczba+=3</code> daje 8, nie &quot;53&quot;). <code>declare -r STALA=wartość</code> — readonly (jak <code>readonly</code>, błąd przy próbie zmiany). <code>declare -a tablica=(a b c)</code> — indexed array: <code>${tablica[0]}</code>, <code>${tablica[@]}</code> wszystkie, <code>${#tablica[@]}</code> liczba elementów. <code>declare -A mapa</code> — associative array (słownik): <code>mapa[klucz]=wartość</code>, <code>${mapa[klucz]}</code>, <code>${!mapa[@]}</code> wszystkie klucze. <code>declare -x ZMIENNA</code> — eksportuj (jak <code>export</code>). <code>declare -l tekst</code> — lowercase automatycznie. <code>declare -u tekst</code> — uppercase automatycznie. <strong>Podgląd:</strong> <code>declare -p zmienna</code> — pokaż typ i wartość. <code>declare -f funkcja</code> — pokaż kod funkcji. <strong>Zasięg:</strong> zmienne są globalne — użyj <code>local</code> wewnątrz funkcji żeby ograniczyć zasięg." }
+  ]},
+
+  { title: "Performance Tuning", cat: "System", qa: [
+    { q: "Jak zidentyfikować bottleneck systemu?", a: "<span class='tip-badge tip-cmd'>CMD</span> Metodologia USE (Utilization, Saturation, Errors). CPU: <code>top, mpstat -P ALL 1, perf top</code>. RAM: <code>free -h, vmstat 1, /proc/meminfo</code>. I/O: <code>iostat -xz 1, iotop, dstat</code>. Sieć: <code>sar -n DEV 1, iftop, nethogs, ss -s</code>." },
+    { q: "Kluczowe parametry sysctl dla wydajności?", a: "<code>net.core.somaxconn=65535</code> (listen queue). <code>net.ipv4.tcp_tw_reuse=1</code>. <code>vm.swappiness=10</code> (mniej swapowania). <code>vm.dirty_ratio=15</code>. <code>net.core.rmem_max/wmem_max</code> (bufory sieciowe). <code>fs.file-max</code> (limit plików). Trwałe: <code>/etc/sysctl.d/</code>." },
+    { q: "Co to hugepages i kiedy używać?", a: "Strony pamięci 2MB (lub 1GB) zamiast 4KB — mniej TLB misses dla dużych aplikacji. Dla: Oracle DB, PostgreSQL (shared_buffers), KVM gości (transparent hugepages), HPC. <code>vm.nr_hugepages=512</code>. Transparent: <code>always/madvise/never</code>. Bazy preferują madvise lub never." },
+    { q: "Jak profilować CPU?", a: "<span class='tip-badge tip-cmd'>CMD</span> <code>perf record -g -p PID sleep 30 && perf report</code>. Flame graphs (Brendan Gregg): <code>perf script | flamegraph.pl > out.svg</code>. <code>strace -c -p PID</code> (syscall statistics). BPF: <code>bpftrace -e 'profile:hz:99 { @[kstack] = count(); }'</code>." },
+    { q: "Jak optymalizować I/O?", a: "I/O schedulers: <code>mq-deadline</code> (SSD/SAN), <code>none</code> (NVMe), <code>bfq</code> (desktop). Sprawdź: <code>cat /sys/block/sda/queue/scheduler</code>. Read-ahead: <code>blockdev --setra 256 /dev/sda</code>. NUMA: <code>numactl --cpunodebind=0 --membind=0 ./app</code>. iostat dla analizy." },
+    { q: "Jak analizować problemy z pamięcią?", a: "<code>vmstat 1</code>: si/so (swap in/out) — jeśli > 0 to problem. <code>free -h</code>: buff/cache jest dostępne. <code>/proc/PID/smaps</code>: szczegóły procesu. OOM killer: <code>dmesg | grep -i 'oom\|killed'</code>. Memory pressure: <code>cat /proc/pressure/memory</code> (PSI)." },
+    { q: "Co to proces zombie i jak sobie z nim radzić?", a: "<span class='tip-badge tip-info'>INFO</span> Zombie (stan <code>Z</code>) = proces który zakończył działanie, ale rodzic nie odebrał jego kodu wyjścia (<code>wait()</code>). Zajmuje tylko wpis w tablicy procesów — nie zużywa CPU ani RAM, ale tysiące zombi wyczerpują pulę PID. Skąd się bierze: błąd w aplikacji — rodzic nie wywołuje <code>wait()</code> po śmierci dziecka. Wykrywanie: <code>ps aux | grep Z</code> lub <code>ps aux | awk '$8==&quot;Z&quot;'</code>. Liczba zombi: <code>cat /proc/loadavg</code> (ostatnia kolumna np. <code>3/142</code> — living/total). <strong>Nie można</strong> zabić zombie przez <code>kill -9</code> — jest już martwy. Rozwiązania: 1) <code>kill -SIGCHLD &lt;PID_RODZICA&gt;</code> — sygnał do rodzica żeby odebrał status dziecka. 2) Zabij rodzica (<code>kill &lt;PID_RODZICA&gt;</code>) — zombie przejmuje init/systemd który automatycznie robi <code>wait()</code>. 3) Długoterminowo: napraw kod aplikacji." }
+  ]},
+
+  { title: "RHCSA / RHCE — Egzaminy", cat: "System", qa: [
+    { q: "Kluczowe tematy RHCSA (EX200)?", a: "Essentials: pliki/uprawnienia/ACL, SELinux, systemd, sieć (nmcli/nmtui), użytkownicy/sudo, cron/at, LVM/Stratis, autofs, SSH, firewalld, containers (podman). Ważne: rozwiązywanie problemów startowych (broken root pw, SELinux relabeling)." },
+    { q: "Co to RHCE (EX294)?", a: "Od RHEL 8 = egzamin z Ansible. Playbooki, role, inventory, fakty, zmienne, Vault, templates (Jinja2), handlers, zarządzanie pakietami/usługami/użytkownikami/siecią przez Ansible. Automatyzacja zadań z RHCSA poziomem." },
+    { q: "Jak debugować problemy startowe RHEL?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> GRUB: klawisz E → edycja → dopisz <code>rd.break</code> (initramfs rescue) lub <code>systemd.unit=rescue.target</code>. W rd.break: <code>mount -o remount,rw /sysroot && chroot /sysroot</code>, napraw, <code>touch /.autorelabel</code> (relabeling SELinux). <code>journalctl -b -1</code> poprzedni boot." },
+    { q: "Jak skonfigurować autofs?", a: "<code>/etc/auto.master</code>: <code>/misc /etc/auto.misc</code>. <code>/etc/auto.misc</code>: <code>nfs_share -rw,sync nfsserver:/export/data</code>. Indirect map dla dynamicznych mountów (<code>/-</code> dla direct). <code>systemctl enable --now autofs</code>. Auto-unmount po timeout (domyślnie 5min)." },
+    { q: "Jak zarządzać siecią przez nmcli?", a: "<span class='tip-badge tip-cmd'>CMD</span> <code>nmcli con add type ethernet ifname eth0 con-name mycon</code>. IP: <code>nmcli con mod mycon ipv4.addresses 192.168.1.10/24 ipv4.gateway 192.168.1.1 ipv4.method manual</code>. DNS: <code>ipv4.dns '8.8.8.8 1.1.1.1'</code>. Aktywuj: <code>nmcli con up mycon</code>. Bond/Team/Bridge przez nmcli." },
+    { q: "Co to podman w kontekście RHCSA?", a: "Rootless containers w RHEL 8+. <code>podman run -d --name web -p 8080:80 nginx</code>. Systemd integration: <code>podman generate systemd --name web > /etc/systemd/system/web.service</code>. Persistent: <code>loginctl enable-linger username</code> dla user services. <code>podman pod</code> dla grup kontenerów." }
+  ]},
+
+  { title: "Security / CIS / SELinux", cat: "Security", qa: [
+    { q: "Co to CIS Benchmarks?", a: "Center for Internet Security — zbiór najlepszych praktyk hardeningu. Profile: Level 1 (minimalne zakłócenia działania, szeroko stosowalny) i Level 2 (głębsze bezpieczeństwo, wymaga testów). Dostępne dla RHEL, Ubuntu, Cloud (AWS, Azure), Docker, Kubernetes." },
+    { q: "Jak skonfigurować SELinux?", a: "<span class='tip-badge tip-info'>INFO</span> Tryby: <code>Enforcing</code> (aktywny), <code>Permissive</code> (loguje, nie blokuje), <code>Disabled</code>. Sprawdź: <code>getenforce</code>. Trwała zmiana: <code>/etc/selinux/config</code>. Kontekst: <code>ls -Z</code>. Napraw: <code>restorecon -Rv /var/www</code>. Deny logi: <code>ausearch -m avc</code>." },
+    { q: "Co to sudoers i jak bezpiecznie edytować?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> Zawsze używaj <code>visudo</code> — weryfikuje składnię przed zapisem. Zasada minimalnych uprawnień: <code>jan ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart nginx</code>. Drop-in files w <code>/etc/sudoers.d/</code>. Nigdy <code>chmod 777</code> na sudoers." },
+    { q: "Jak działa firewalld?", a: "<span class='tip-badge tip-cmd'>CMD</span> Koncepcja stref (zones). <code>firewall-cmd --get-active-zones</code>. Dodaj usługę: <code>firewall-cmd --permanent --add-service=https --zone=public</code>. Port: <code>--add-port=8080/tcp</code>. Zastosuj: <code>--reload</code>. Rich rules dla zaawansowanego filtrowania." },
+    { q: "Co to auditd?", a: "Demon audytowania wywołań systemowych. Reguły w <code>/etc/audit/rules.d/</code>. Przykład: monitoruj zapis do <code>/etc/passwd</code>: <code>-w /etc/passwd -p wa -k passwd_changes</code>. Szukaj: <code>ausearch -k passwd_changes</code>. Raport: <code>aureport --summary</code>." },
+    { q: "Jak skonfigurować SSH securely?", a: "W <code>/etc/ssh/sshd_config</code>: <code>PermitRootLogin no</code>, <code>PasswordAuthentication no</code>, <code>PubkeyAuthentication yes</code>, <code>Port 2222</code>, <code>AllowUsers jan devops</code>, <code>MaxAuthTries 3</code>. Klucze: <code>ssh-keygen -t ed25519</code>. Fail2ban dla ochrony przed brute-force." },
+    { q: "Co to PAM (Pluggable Authentication Modules)?", a: "Modułowy system autentykacji Linux. Konfiguracja: <code>/etc/pam.d/</code>. Moduły: <code>pam_unix</code> (local auth), <code>pam_ldap</code> (LDAP), <code>pam_pwquality</code> (polityka haseł), <code>pam_faillock</code> (lockout). Stack: auth, account, password, session." },
+    { q: "Jak działa PKI i certyfikaty TLS?", a: "CA → cert req (CSR) → podpisanie → cert. OpenSSL: <code>openssl req -new -key key.pem -out csr.pem</code>. Sprawdź cert: <code>openssl x509 -in cert.pem -text -noout</code>. Let's Encrypt: <code>certbot certonly</code>. Weryfikacja łańcucha: <code>openssl verify -CAfile ca.pem cert.pem</code>." },
+    { q: "Co to LUKS i jak szyfrować dyski?", a: "<span class='tip-badge tip-cmd'>CMD</span> <code>cryptsetup luksFormat /dev/sdb1</code>. Otwórz: <code>cryptsetup open /dev/sdb1 mydata</code>. Format: <code>mkfs.ext4 /dev/mapper/mydata</code>. Auto-mount: <code>/etc/crypttab</code>. Dodaj klucz: <code>cryptsetup luksAddKey /dev/sdb1</code>." },
+    { q: "Jak skonfigurować fail2ban?", a: "<code>/etc/fail2ban/jail.local</code>: <code>[sshd]\nenabled = true\nmaxretry = 3\nbantime = 3600\nfindtime = 600</code>. Status: <code>fail2ban-client status sshd</code>. Odbanuj: <code>fail2ban-client set sshd unbanip 1.2.3.4</code>." },
+    { q: "Co to FIPS mode w RHEL?", a: "Federal Information Processing Standards — tryb wymuszający użycie zatwierdzonych algorytmów kryptograficznych (SHA-256+, AES, RSA 2048+). Włącz: <code>fips-mode-setup --enable</code> + reboot. Sprawdź: <code>fips-mode-setup --check</code>. MD5 i SHA1 są wyłączone." },
+    { q: "Jak zarządzać kluczami GPG/PGP?", a: "<code>gpg --gen-key</code>. Eksport: <code>gpg --export -a 'Jan' > jan.pub.key</code>. Import: <code>gpg --import jan.pub.key</code>. Szyfruj: <code>gpg -e -r jan plik</code>. Deszyfruj: <code>gpg -d plik.gpg</code>. RPM weryfikacja: <code>rpm --checksig package.rpm</code>." }
+  ]},
+
+  { title: "Linux / Security — Mid Level", cat: "Security", qa: [
+    { q: "Jak działa Linux capabilities i dlaczego lepsze niż SUID?", a: "<span class='tip-badge tip-info'>INFO</span> Capabilities dzielą uprawnienia root na granularne jednostki: CAP_NET_BIND_SERVICE (port <1024), CAP_SYS_PTRACE, CAP_NET_ADMIN itp. <code>getcap /usr/bin/ping</code>. Nadaj: <code>setcap cap_net_bind_service=ep ./app</code>. Bezpieczniejsze niż SUID bo nie daje pełnego roota. Kontenery: <code>--cap-drop ALL --cap-add NET_BIND_SERVICE</code>." },
+    { q: "Co to eBPF i jakie ma zastosowania security?", a: "Extended Berkeley Packet Filter — uruchamia sandboxowane programy w kernelu bez modyfikacji kodu kernela. Security: Falco (runtime threat detection), Cilium (network policy L7), seccomp-bpf (syscall filtering). Observability: bpftrace, perf. <code>bpftrace -e 'tracepoint:syscalls:sys_enter_execve { printf(\"%s\\n\", str(args->filename)); }'</code>" },
+    { q: "Jak działa seccomp i jak filtrować syscalle?", a: "Secure Computing Mode — filtruje wywołania systemowe procesu. Profil JSON definiuje białą/czarną listę. Docker domyślnie używa seccomp profile (blokuje ~44 syscalls). Kubernetes: <code>securityContext.seccompProfile.type: RuntimeDefault</code>. Custom: <code>Localhost</code> z własnym profilem. <code>strace</code> do audytu syscalli aplikacji." },
+    { q: "Jak działa AppArmor vs SELinux?", a: "AppArmor: profile per aplikację (ścieżki plików, capabilities, sieci). Prostszy w konfiguracji. Domyślny w Ubuntu/Debian. SELinux: label-based MAC (każdy obiekt i podmiot ma kontekst). Bardziej granularny, trudniejszy. Domyślny w RHEL/CentOS. Oba można łączyć z seccomp. AppArmor: <code>aa-genprof</code> do generowania profili." },
+    { q: "Co to supply chain security i jak zabezpieczać?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> Ataki na zależności (SolarWinds, log4shell). Narzędzia: Trivy/Grype (skanowanie CVE w obrazach i plikach), Syft (SBOM — Software Bill of Materials), Sigstore/cosign (podpisywanie obrazów), SLSA (Supply chain Levels for Software Artifacts — framework poziomów bezpieczeństwa łańcucha dostaw). Policy: tylko podpisane obrazy w K8s (OPA/Kyverno)." },
+    { q: "Jak działają Linux namespaces i cgroups (podstawy kontenerów)?", a: "Namespaces: izolacja zasobów — pid (procesy), net (sieć), mnt (filesystemy), uts (hostname), ipc, user (UID mapping), cgroup. Cgroups v2: limity CPU (cpu.max), pamięci (memory.max), I/O (io.max). Kontenery = procesy z namespacami + cgroupami. <code>lsns</code> lista namespaces. <code>nsenter -t PID -n ip addr</code>." },
+    { q: "Jak przeprowadzić hardening SSH dla środowiska produkcyjnego?", a: "<code>AllowUsers devops ansible</code>. <code>Match Address 10.0.0.0/8</code> bloki. <code>LoginGraceTime 20</code>. <code>ClientAliveInterval 300</code>. <code>ClientAliveCountMax 2</code>. Ed25519 zamiast RSA. <code>KexAlgorithms curve25519-sha256</code>. <code>Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com</code>. Bastion host + jump: <code>ProxyJump bastion</code>." },
+    { q: "Co to SIEM i jak integrować Linux z nim?", a: "Security Information and Event Management — zbiera, koreluje, alertuje na zdarzenia security. Stack: auditd → rsyslog/syslog-ng → Splunk/Elastic SIEM. Kluczowe logi: /var/log/auth.log, /var/log/secure, auditd, syslog. OSSEC/Wazuh: open-source HIDS. Reguły korelacji: login failures + privilege escalation + data exfiltration = alert." },
+    { q: "Jak działają Linux ACL vs DAC vs MAC?", a: "DAC (Discretionary): standardowe uprawnienia Unix (chmod, chown) — właściciel kontroluje dostęp. ACL: rozszerzenie DAC (setfacl) — per-user/group granularne uprawnienia. MAC (Mandatory): SELinux/AppArmor — system wymusza politykę niezależnie od właściciela. Hierarchia: MAC > DAC > ACL. Kontener security: wszystkie trzy warstwy." },
+    { q: "Co to kernel hardening i kluczowe opcje?", a: "<span class='tip-badge tip-cmd'>CMD</span> sysctl: <code>kernel.dmesg_restrict=1</code>, <code>kernel.kptr_restrict=2</code>, <code>net.ipv4.conf.all.rp_filter=1</code> (anti-spoofing), <code>net.ipv4.tcp_syncookies=1</code> (SYN flood), <code>fs.suid_dumpable=0</code>. GRUB: <code>lockdown=confidentiality</code>. Grsecurity/PaX (patchset). CIS benchmark automatyzuje te ustawienia." }
+  ]},
+
+  { title: "Linux — Security Hardening", cat: "Security", qa: [
+    { q: "Jak przeprowadzić hardening SSH dla produkcji?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> <code>PermitRootLogin no</code>. <code>PasswordAuthentication no</code>. <code>PubkeyAuthentication yes</code>. <code>AllowUsers devops ansible</code>. <code>LoginGraceTime 20</code>. <code>MaxAuthTries 3</code>. <code>ClientAliveInterval 300\nClientAliveCountMax 2</code>. Ed25519 zamiast RSA. Algorytmy: <code>KexAlgorithms curve25519-sha256\nCiphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com</code>. Jump/bastion: <code>ProxyJump bastion.firma.pl</code>." },
+    { q: "Co to CIS Benchmarks i jak automatycznie stosować?", a: "CIS Benchmarks: best practices hardeningu (Level 1 = minimalne zakłócenia, Level 2 = głębsze security). Automatyzacja: <code>openscap</code> — <code>oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_cis /usr/share/xml/scap/ssg/content/ssg-rhel9-ds.xml</code>. Ansible role: <code>ansible-lockdown/RHEL9-CIS</code>. Raport HTML: <code>--report /tmp/cis-report.html</code>. Chef InSpec dla compliance testing: <code>inspec exec cis-rhel9 -t ssh://host</code>." },
+    { q: "Jak zarządzać PKI i własnym CA?", a: "<span class='tip-badge tip-cmd'>CMD</span> Root CA: <code>openssl genrsa -aes256 -out ca.key 4096 && openssl req -new -x509 -days 3650 -key ca.key -out ca.crt</code>. Podpisanie: <code>openssl ca -config ca.cnf -in server.csr -out server.crt -days 365</code>. CFSSL (CloudFlare) dla automatyzacji. cert-manager w K8s: <code>Issuer/ClusterIssuer</code> z CA lub ACME. Hashicorp Vault PKI secrets engine: automatyczne wydawanie certów z TTL. Sprawdź: <code>openssl verify -CAfile ca.crt server.crt</code>." },
+    { q: "Jak wykrywać i reagować na intruzje (IDS/IPS)?", a: "Wazuh (OSSEC fork): HIDS — monitoruje pliki, logi, rootkit detection. Snort/Suricata: NIDS — analizuje ruch sieciowy. Stack: Wazuh agents → Wazuh manager → Elasticsearch/Kibana. Reguły: <code>syscheck</code> (file integrity), <code>rootcheck</code>, <code>log analysis</code>. Falco (K8s): runtime security — wykrywa anomalne syscalle. MITRE ATT&CK mapping. Reakcja: automatyczny ban przez Wazuh active response." },
+    { q: "Co to Zero Trust i jak implementować w Linux?", a: "<span class='tip-badge tip-info'>INFO</span> Zasada: never trust, always verify. Implementacja: mTLS między serwisami (Istio/Linkerd), PAM + MFA dla każdego logowania, krótkotrwałe certyfikaty SSH (Vault SSH CA: <code>vault write ssh/sign/role public_key=@key.pub</code> → cert ważny 1h), BeyondCorp model (dostęp per tożsamość + urządzenie, nie sieć). Network: micro-segmentacja NSX/Cilium. Audit: wszystkie privileged actions." }
+  ]},
+
+  { title: "Networking / TCP / DNS", cat: "Networking", qa: [
+    { q: "TCP handshake — jak działa?", a: "3-way: SYN → SYN-ACK → ACK. Zamknięcie: FIN → FIN-ACK → ACK. Stany: ESTABLISHED, TIME_WAIT (2×MSL po zamknięciu), CLOSE_WAIT (remote zamknął, local nie), SYN_SENT. Diagnostyka: <code>ss -tnp</code>, <code>netstat -anp</code>." },
+    { q: "Jak działa DNS resolution?", a: "<span class='tip-badge tip-info'>INFO</span> Query → stub resolver → recursive resolver (ISP/8.8.8.8) → root nameserver (.) → TLD (.com) → authoritative NS → odpowiedź z rekordem. TTL kontroluje cache. Trace: <code>dig +trace example.com</code>. Typy rekordów: A, AAAA, CNAME, MX, TXT, NS, PTR, SRV." },
+    { q: "Co to VLAN i routing inter-VLAN?", a: "VLAN = logiczna izolacja L2 (IEEE 802.1Q trunking). Inter-VLAN routing: router-on-a-stick (trunk + subinterfaces) lub L3 switch (SVI). W Linux: <code>ip link add link eth0 name eth0.10 type vlan id 10 && ip link set eth0.10 up</code>." },
+    { q: "Narzędzia diagnostyki sieci w Linux?", a: "<span class='tip-badge tip-cmd'>CMD</span> <code>ping, traceroute/mtr, ss -tnp, ip addr/route/neigh, tcpdump -i eth0 port 80, nmap -sV host, curl -v, netcat -zv host 443, iperf3 -s/-c, nslookup/dig, ethtool eth0</code>. MTU: <code>ping -M do -s 1472 host</code>." },
+    { q: "Co to BGP i OSPF?", a: "OSPF: IGP, link-state, Dijkstra SPF, fast convergence, używany wewnątrz AS. BGP: EGP, path-vector, routing między AS (Internet backbone). eBGP między ISP, iBGP wewnątrz AS. BGP atrybuty: AS-PATH, LOCAL_PREF, MED, NEXT_HOP." },
+    { q: "Co to iptables vs nftables?", a: "iptables: stary, per-protokołowy (iptables/ip6tables/arptables). nftables: następca, jeden framework dla wszystkich protokołów, lepsza wydajność (single ruleset lookup), nowoczesna składnia. RHEL 8+: nftables domyślny backend. firewalld używa nftables pod spodem." },
+    { q: "Jak skonfigurować bonding/teaming w Linux?", a: "Bonding: aktywny-pasywny (mode 1), LACP (802.3ad, mode 4), round-robin (0), balance-alb (6). <code>nmcli con add type bond con-name bond0 ifname bond0 bond.options 'mode=active-backup'</code>. Teaming: nowszy, JSON config, daemon teamd." },
+    { q: "Co to NAT i jak działa?", a: "Network Address Translation. SNAT (masquerade): zmiana source IP (private → public). DNAT: port forwarding (public IP:port → private IP:port). Full-cone NAT vs symmetric NAT. W Linux: iptables MASQUERADE / DNAT lub <code>ip_forward = 1</code>." },
+    { q: "Co to Load Balancer L4 vs L7?", a: "L4 (transport): HAProxy TCP mode, AWS NLB — szybszy, bazuje na IP/porcie, nie czyta treści. L7 (aplikacyjny): Nginx, HAProxy HTTP, AWS ALB — URL-based routing, host header, SSL termination, cookie persistence, health check per endpoint." },
+    { q: "Jak działa DHCP?", a: "DORA (Discover → Offer → Request → Acknowledge): Discover (broadcast) → Offer (serwer proponuje IP) → Request (klient akceptuje) → Acknowledge. Lease time. DHCP reservations (MAC → fixed IP). Relay agent dla wielu subnets. W Linux: <code>dhcpd</code> (ISC) lub <code>dnsmasq</code>." },
+    { q: "Co to MTU i jak diagnozować problemy?", a: "<span class='tip-badge tip-cmd'>CMD</span> MTU (Maximum Transmission Unit): domyślnie 1500 bajtów Ethernet. Jumbo frames: 9000 dla storage/HPC. Problemy: fragmentacja, black hole (PMTUD blocked). Test: <code>ping -M do -s 1472 host</code> (1472+28=1500). Sprawdź: <code>ip link show eth0 | grep mtu</code>. Ustaw: <code>ip link set eth0 mtu 9000</code>. VPN często wymaga niższego MTU (1450)." },
+    { q: "Jak działa Anycast i do czego służy?", a: "Wiele serwerów z tym samym IP, routing BGP kieruje do najbliższego. Użycia: DNS (1.1.1.1, 8.8.8.8), CDN (CloudFront), DDoS mitigation. Klient widzi jeden IP, fizycznie trafił do najbliższego PoP. Linux: <code>ip route add 192.0.2.1/32 dev lo</code> + ogłoszenie przez BGP. Różni się od load balancing — decyzja na poziomie routingu, nie aplikacji." },
+    { q: "Co to SSL/TLS termination i gdzie powinno być?", a: "Termination: szyfrowanie kończy się na load balancerze/proxy (nginx, HAProxy, AWS ALB). Backend dostaje plain HTTP. Passthrough: LB przekazuje zaszyfrowany ruch (L4). Re-encryption: LB terminuje i ponownie szyfruje do backendu (mTLS). <code>ssl_certificate</code> + <code>ssl_certificate_key</code> w Nginx. Staging certs: Let's Encrypt staging URL unika rate limits." }
+  ]},
+
+  { title: "LDAP / Autentykacja", cat: "Networking", qa: [
+    { q: "Co to LDAP i jak działa autentykacja?", a: "Lightweight Directory Access Protocol. Drzewo DN: <code>uid=jan,ou=users,dc=firma,dc=pl</code>. Operacje: Bind (auth), Search, Add, Modify, Delete, Compare. Porty: 389 (LDAP), 636 (LDAPS/TLS), 3268 (Global Catalog). StartTLS upgrade plain do encrypted." },
+    { q: "Jak skonfigurować SSSD dla LDAP/AD?", a: "<span class='tip-badge tip-cmd'>CMD</span> <code>/etc/sssd/sssd.conf</code>: <code>id_provider=ldap</code>, <code>auth_provider=ldap</code>, <code>ldap_uri</code>, <code>ldap_search_base</code>. Dla AD: <code>id_provider=ad</code> z <code>realm join</code>. <code>authselect select sssd</code>. Test: <code>id username</code>, <code>getent passwd username</code>." },
+    { q: "Różnica LDAP vs Active Directory?", a: "AD = LDAP + Kerberos + DNS + Group Policy + Kerberos auth + replication. LDAP to protokół. AD używa LDAP jako protokołu dostępu. OpenLDAP: open-source implementacja protokołu. FreeIPA (Red Hat): LDAP + Kerberos + DNS + CA dla Linux środowisk." },
+    { q: "Co to Kerberos i jak działa?", a: "Protokół autentykacji oparty na tickets. KDC (Key Distribution Center) = AS + TGS. Flow: user → AS (TGT) → TGS (service ticket) → service. SSO: jeden login, dostęp do wielu usług. AD używa Kerberos jako domyślnej metody. <code>kinit, klist, kdestroy</code>." }
+  ]},
+
+  { title: "Virtualization / KVM / VMware", cat: "Infra/IaC", qa: [
+    { q: "Różnica Type 1 vs Type 2 hypervisor?", a: "Type 1 (bare-metal): VMware ESXi, Microsoft Hyper-V, KVM (w sensie jądra Linux) — bezpośrednio na hardware, mniejszy narzut. Type 2 (hosted): VirtualBox, VMware Workstation, Parallels — na OS hosta, większy narzut, dev-friendly." },
+    { q: "Co to KVM i jak zarządzać maszynami?", a: "<span class='tip-badge tip-cmd'>CMD</span> <code>virsh list --all</code>. Start/stop: <code>virsh start/shutdown/destroy vm</code>. Utwórz: <code>virt-install --name test --memory 2048 --vcpus 2 --disk size=20 --os-variant rhel9 --cdrom rhel9.iso</code>. Clone: <code>virt-clone</code>. Snapshot: <code>virsh snapshot-create-as</code>." },
+    { q: "VMware vSphere — kluczowe komponenty?", a: "ESXi (hypervisor host), vCenter Server (centralne zarządzanie), vSAN (hyperconverged storage), NSX (SDN), vMotion (live migration bez downtime), HA (restart VM po awarii hosta), DRS (load balancing VMów), FT (fault tolerance — zero downtime)." },
+    { q: "Co to QEMU vs KVM?", a: "QEMU: pełny emulator sprzętu (CPU, RAM, urządzenia) w software — wolny. KVM: moduł jądra Linux wykorzystujący Intel VT-x/AMD-V do przyspieszenia — near-native performance. QEMU-KVM razem: QEMU emuluje urządzenia, KVM wykonuje kod gościa na fizycznym CPU." },
+    { q: "Co to libvirt i jak z nim pracować?", a: "API i daemon (<code>libvirtd</code>) zarządzający hypervisorami (KVM, QEMU, Xen, VMware). Narzędzia: <code>virsh</code> (CLI), <code>virt-manager</code> (GUI), <code>virt-viewer</code>. XML definiuje domenę/sieć/storage. Ansible: moduł <code>community.libvirt</code>." },
+    { q: "Jak działa migracja live (vMotion)?", a: "Pre-copy: kopiowanie pamięci iteracyjnie (dirty pages) → krótka przerwa → przełącz CPU + urządzenia. Wymaga: shared storage lub storage vMotion, sieć vMotion (dedykowana), VMkernel port. KVM odpowiednik: <code>virsh migrate --live vm qemu+ssh://dest</code>." }
+  ]},
+
+  { title: "Storage / SAN / LVM", cat: "Storage/HA", qa: [
+    { q: "Różnica SAN vs NAS vs DAS?", a: "DAS (Direct-Attached Storage): bezpośrednio podłączony (SATA/SAS/NVMe). SAN (Storage Area Network): block storage przez sieć (iSCSI — TCP/IP, Fibre Channel — dedykowana) — wygląda jak lokalny dysk. NAS (Network Attached Storage): file storage przez sieć (NFS — Linux, CIFS/SMB — Windows). SAN = wydajność DB. NAS = shared files." },
+    { q: "Co to LVM i jak działa?", a: "<span class='tip-badge tip-cmd'>CMD</span> PV (fizyczne dyski/partycje) → VG (pula przestrzeni) → LV (wolumin logiczny). <code>pvcreate /dev/sdb</code>. <code>vgcreate vg_data /dev/sdb</code>. <code>lvcreate -L 50G -n lv_app vg_data</code>. Rozszerz: <code>lvextend -L +10G /dev/vg_data/lv_app && resize2fs</code> (ext4) lub <code>xfs_growfs</code>." },
+    { q: "iSCSI — jak skonfigurować?", a: "Target (serwer): <code>targetcli</code> — backstores, targets, LUNs, ACLs. Initiator (klient): discovery: <code>iscsiadm -m discovery -t sendtargets -p 192.168.1.10</code>. Login: <code>iscsiadm -m node --login</code>. Autentykacja CHAP. <code>iscsiadm -m session</code> sprawdza aktywne sesje." },
+    { q: "Co to RAID i jakie poziomy znać?", a: "RAID 0: striping (wydajność, brak redundancji). RAID 1: mirror (50% pojemności). RAID 5: XOR parity, min 3 dyski, tolерuje 1 awarię. RAID 6: dual parity, 2 awarie. RAID 10: mirror + stripe, wydajne + bezpieczne. <code>mdadm --create /dev/md0 --level=5 --raid-devices=3 /dev/sd{b,c,d}</code>." },
+    { q: "Co to Stratis storage (RHEL)?", a: "Warstwa abstrakcji nad LVM + XFS. Thin provisioning, snapshoty, szyfrowanie, monitoring. <code>stratis pool create mypool /dev/sdb</code>. <code>stratis filesystem create mypool myfs</code>. Mount: <code>stratisd</code> automatycznie zarządza. Prostszy niż LVM + XFS ręcznie." },
+    { q: "Co to GlusterFS i Ceph?", a: "GlusterFS: distributed filesystem, POSIX-compliant, self-healing, no metadata server. Bricks → Volumes (distributed, replicated, striped). Ceph: unified storage (block/file/object), RADOS, erasure coding, używany w OpenStack/K8s. Bardziej złożony, ale skaluje masywnie." },
+    { q: "Jak działają NFS i jak konfigurować?", a: "<span class='tip-badge tip-cmd'>CMD</span> Server: <code>/etc/exports: /data 192.168.1.0/24(rw,sync,no_root_squash)</code>. <code>exportfs -ra && systemctl restart nfs-server</code>. Klient: <code>mount -t nfs server:/data /mnt</code>. Trwałe w <code>/etc/fstab</code>. NFS4: Kerberos auth (<code>sec=krb5</code>), pseudoroot, brak rpcbind." }
+  ]},
+
+  { title: "High Availability / Klastry", cat: "Storage/HA", qa: [
+    { q: "Co to Pacemaker / Corosync?", a: "Corosync: komunikacja klastrowa i membership (quorum). Pacemaker: resource manager (VIP, usługi, filesystem mounty). Razem = RHEL HA add-on. <code>pcs cluster setup --name myklaster node1 node2</code>. <code>pcs resource create VIP IPaddr2 ip=10.0.0.100</code>. Fencing (STONITH) wymagane." },
+    { q: "Co to split-brain i jak zapobiegać?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> Obie strony myślą że są primary → podwójny zapis → korupcja danych. Rozwiązania: quorum (większość węzłów), STONITH/fencing (zabij drugą stronę — IPMI/iLO/fence_aws), witness/tiebreaker (trzeci mały węzeł lub SBD — storage-based death)." },
+    { q: "Co to keepalived i jak działa?", a: "VRRP (Virtual Router Redundancy Protocol) — wirtualny IP failover. Master trzyma VIP, Backup przejmuje przy awarii (brak heartbeat). <code>/etc/keepalived/keepalived.conf</code>: <code>vrrp_instance VI_1 { state MASTER, priority 100, virtual_ipaddress { 10.0.0.100 } }</code>. Często z HAProxy." },
+    { q: "Jak działa HAProxy?", a: "L4/L7 load balancer i proxy. Frontend (accepts connections) → Backend (servers). Algorytmy: roundrobin, leastconn, source (sticky sessions). Health checks. Stats page. <code>/etc/haproxy/haproxy.cfg</code>. SSL termination. ACL-based routing." },
+    { q: "Co to active-active vs active-passive HA?", a: "Active-passive: standby czeka, przejmuje przy awarii (VIP migration). Prostsze, waste zasobów. Active-active: oba węzły obsługują ruch (LB między nimi). Efektywniejsze, ale wymaga shared state lub sticky sessions. Bazy danych: częściej A-P lub multi-master (Galera, Patroni)." },
+    { q: "Co to RPO i RTO w kontekście HA?", a: "RTO (Recovery Time Objective): jak długo może trwać przerwa? RPO (Recovery Point Objective): ile danych można stracić? HA minimalizuje RTO (sekundy). DR (disaster recovery) adresuje RPO (backup interwał) i obejmuje kolejny site/region." }
+  ]},
+
+  { title: "Docker — Kontenery", cat: "Containers", qa: [
+    { q: "Różnica między image a container?", a: "Image = read-only template (warstwy UnionFS — każdy RUN/COPY tworzy warstwę). Container = uruchomiona instancja z dodatkową zapisywalną warstwą (ephemeral). Image → <code>docker run</code> → container. <code>docker commit</code> utrwala zmiany (antypattern)." },
+    { q: "Dockerfile — kluczowe dyrektywy?", a: "<code>FROM</code> (base image), <code>RUN</code> (budowanie), <code>COPY/ADD</code> (pliki), <code>ENV</code> (zmienne), <code>EXPOSE</code> (dokumentacja portu), <code>ENTRYPOINT</code> (główna komenda), <code>CMD</code> (domyślne args), <code>WORKDIR</code>, <code>USER</code>, <code>HEALTHCHECK</code>, <code>ARG</code>." },
+    { q: "Co to multi-stage build?", a: "<span class='tip-badge tip-info'>INFO</span> Kilka bloków <code>FROM</code> w jednym Dockerfile. Stage budowania (z kompilatorem) → kopiowanie tylko artefaktów do małego runtime image (<code>COPY --from=builder /app/bin /app/bin</code>). Drastycznie redukuje rozmiar obrazu i powierzchnię ataku." },
+    { q: "Jak działają sieci Docker?", a: "Typy: <code>bridge</code> (default, NAT), <code>host</code> (bez izolacji sieciowej), <code>none</code>, <code>overlay</code> (Swarm/multi-host), <code>macvlan</code>. <code>docker network create --driver bridge mynet</code>. Kontenery w jednej sieci rozwiązują się po nazwie." },
+    { q: "Volumes vs bind mounts vs tmpfs?", a: "Volume: zarządzany przez Docker (<code>/var/lib/docker/volumes</code>), backup-friendly, przenośny. Bind mount: konkretna ścieżka hosta, dev-friendly. tmpfs: in-memory, dane znikają po zatrzymaniu (sekrety). <code>-v vol:/data</code>, <code>-v /host:/container</code>, <code>--tmpfs /tmp</code>." },
+    { q: "Jak zabezpieczać kontenery Docker?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> Uruchamiaj jako non-root (<code>USER appuser</code>). <code>--read-only</code>. <code>--cap-drop ALL --cap-add NET_BIND_SERVICE</code>. <code>--security-opt no-new-privileges</code>. Skanowanie: <code>docker scout</code>, Trivy, Snyk. Użyj distroless/scratch jako base." },
+    { q: "Co to docker-compose i kiedy używać?", a: "Definiowanie wielokontenerowych aplikacji (YAML). <code>docker compose up -d</code>. Services, networks, volumes jako kod. Dev/testing. Produkcja: Kubernetes lub Docker Swarm. V2 (compose plugin) zastąpił standalone <code>docker-compose</code>." },
+    { q: "Jak monitorować i debugować kontenery?", a: "<span class='tip-badge tip-cmd'>CMD</span> <code>docker logs -f container</code>. Stats: <code>docker stats</code>. Exec: <code>docker exec -it container bash</code>. Inspect: <code>docker inspect container</code>. Events: <code>docker events</code>. Top: <code>docker top container</code>. <code>nsenter</code> dla głębszej diagnostyki." },
+    { q: "Co to container registry?", a: "Docker Hub (publiczny), GHCR (GitHub), ECR (AWS), ACR (Azure), GCR (Google), Harbor (self-hosted). <code>docker tag myapp:1.0 registry/myapp:1.0 && docker push registry/myapp:1.0</code>. Image scanning wbudowany w ECR, Harbor." },
+    { q: "Czym różni się Podman od Docker?", a: "Podman: daemonless (brak docker daemon), rootless kontenery natively, kompatybilny z Docker CLI (<code>alias docker=podman</code>). Bezpieczniejszy w RHEL/Fedora. <code>podman generate systemd</code> dla autostartu. Compose: <code>podman-compose</code>." },
+    { q: "Jak zoptymalizować rozmiar obrazu Docker?", a: "<span class='tip-badge tip-info'>INFO</span> Multi-stage build (kopiuj tylko artefakty). Użyj <code>alpine</code> lub <code>distroless</code> jako base. Łącz RUN w jedną warstwę: <code>RUN apt-get update && apt-get install -y pkg && rm -rf /var/lib/apt/lists/*</code>. <code>.dockerignore</code> wyklucz zbędne pliki. <code>docker image history img</code> pokazuje warstwy. Narzędzie: <code>dive</code> do analizy warstw." },
+    { q: "Jak działają Docker health checks?", a: "<code>HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD curl -f http://localhost:8080/health || exit 1</code>. Stany: starting → healthy/unhealthy. <code>docker inspect container | jq '.[].State.Health'</code>. Docker Compose: <code>healthcheck: test: ['CMD', 'curl', '-f', 'http://localhost']</code>. K8s ignoruje HEALTHCHECK — używa własnych probe." },
+    { q: "Co to Docker BuildKit i jakie daje możliwości?", a: "<span class='tip-badge tip-cmd'>CMD</span> BuildKit: nowy silnik budowania. Włącz: <code>DOCKER_BUILDKIT=1</code> lub domyślnie w Docker 23+. Możliwości: cache mount (<code>RUN --mount=type=cache,target=/root/.m2</code>), secret mount (<code>--mount=type=secret,id=mysecret</code>), równoległe etapy multi-stage, lepsza cache. <code>docker buildx build --platform linux/amd64,linux/arm64 -t img .</code> dla multi-arch." }
+  ]},
+
+  { title: "Docker — Zaawansowane Techniki", cat: "Containers", qa: [
+    { q: "Jak optymalizować rozmiar obrazu Docker?", a: "<span class='tip-badge tip-info'>INFO</span> Multi-stage build: oddziel stage budowania od runtime. Łącz RUN: <code>RUN apt-get update && apt-get install -y pkg && rm -rf /var/lib/apt/lists/*</code>. Base images: alpine (5MB), distroless, scratch. <code>.dockerignore</code>: wyklucz node_modules, .git, tests. Sprawdź warstwy: <code>docker history image</code> lub narzędzie <code>dive</code>. BuildKit cache mounts: <code>--mount=type=cache,target=/root/.npm</code>." },
+    { q: "Jak debugować kontener crashujący przy starcie?", a: "<span class='tip-badge tip-cmd'>CMD</span> Override entrypoint: <code>docker run --entrypoint /bin/sh -it image</code>. Logi zatrzymanego: <code>docker logs $(docker ps -lq)</code>. Exit code: <code>docker inspect container --format '{{.State.ExitCode}}'</code>. Poprzedni restart: <code>docker logs container --since=10m</code>. Interaktywny strace: <code>docker run --cap-add SYS_PTRACE image strace ./app</code>. Events: <code>docker events --filter type=container</code>." },
+    { q: "Co to Docker BuildKit i cache mounts?", a: "BuildKit (domyślny od Docker 23): <code># syntax=docker/dockerfile:1</code>. Cache mount: <code>RUN --mount=type=cache,target=/root/.npm npm install</code> — cache między buildami bez trafienia do warstw. Secret mount: <code>RUN --mount=type=secret,id=npmrc cat /run/secrets/npmrc</code> — sekrety nie wchodzą do image. <code>docker buildx build --cache-from type=registry,ref=image:cache --cache-to type=inline .</code>" },
+    { q: "Jak zarządzać Docker registry (Harbor)?", a: "Harbor: enterprise self-hosted OCI registry. Funkcje: RBAC, vulnerability scanning (Trivy wbudowany), image signing, replication, proxy cache. Deploy: Helm chart lub docker-compose. Pull-through cache: <code>docker pull harbor.firma.pl/proxy/docker.io/nginx</code>. Robot accounts dla CI/CD. Retencja: automatyczne usuwanie starych tagów. Cosign integration dla supply chain security." },
+    { q: "Jak skanować obrazy Docker pod kątem CVE?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> Trivy: <code>trivy image nginx:latest</code>. Grype: <code>grype nginx:latest</code>. Docker Scout: <code>docker scout cves image</code>. Snyk: <code>snyk container test image</code>. Integruj w CI: fail build jeśli CRITICAL CVE. SBOM: <code>trivy image --format cyclonedx nginx > sbom.json</code>. Base image updates: Dependabot dla Dockerfile, Renovate bot." }
+  ]},
+
+  { title: "Kubernetes / OpenShift", cat: "Containers", qa: [
+    { q: "Kluczowe obiekty Kubernetes?", a: "Pod (najmniejsza jednostka), Deployment (bezstanowy), StatefulSet (stanowy), DaemonSet (per-node), Service (ClusterIP/NodePort/LoadBalancer), Ingress, ConfigMap, Secret, PV/PVC (PersistentVolume/Claim), Namespace, ServiceAccount, HPA (Horizontal Pod Autoscaler), NetworkPolicy." },
+    { q: "Różnica Deployment vs StatefulSet vs DaemonSet?", a: "<span class='tip-badge tip-info'>INFO</span> Deployment: bezstanowe, losowe nazwy podów, skalowalne. StatefulSet: stabilna tożsamość (<code>app-0, app-1</code>), stały storage, ordered rolling update (DB, Kafka). DaemonSet: jeden pod per node (Prometheus node_exporter, Fluentd, kube-proxy)." },
+    { q: "Jak działa RBAC w K8s?", a: "Subjects (User/Group/ServiceAccount) → (Cluster)RoleBinding → (Cluster)Role → Rules (verbs + resources). <code>kubectl auth can-i list pods --as jan</code>. Zasada: minimalnych uprawnień. ServiceAccount dla aplikacji, nigdy default SA." },
+    { q: "Co to liveness vs readiness vs startup probe?", a: "Liveness: czy kontener żyje → restart jeśli fail. Readiness: czy może przyjmować ruch → usuwa z Service endpoints. Startup probe: czas na start wolnej aplikacji (zanim zadziała liveness). Types: httpGet, tcpSocket, exec." },
+    { q: "Jak działa Kubernetes networking?", a: "Każdy Pod dostaje unikalne IP (CNI — Container Network Interface: Calico, Flannel, Cilium). Pod-to-Pod routing bez NAT. Service = stabilny IP/DNS + load balance do podów (kube-proxy/eBPF). Ingress = HTTP/HTTPS zewnętrzny dostęp z routingiem." },
+    { q: "Co to Helm i jak używać?", a: "<span class='tip-badge tip-cmd'>CMD</span> Package manager dla K8s. Chart = paczka YAML templates + values.yaml. <code>helm repo add stable https://charts.helm.sh/stable</code>. <code>helm install myapp ./chart -f custom-values.yaml</code>. <code>helm upgrade/rollback/uninstall</code>. <code>helm template</code> do debugowania." },
+    { q: "Co to OpenShift vs Kubernetes?", a: "OpenShift = Kubernetes + enterprise: Routes (Ingress), SCC (Security Context Constraints zamiast PSP), wbudowany Registry, CI/CD (Tekton/ArgoCD), OAuth, rozszerzony RBAC. <code>oc</code> = rozszerzenie kubectl. Bazuje na OKD (community upstream)." },
+    { q: "Jak działa HPA (Horizontal Pod Autoscaler)?", a: "Skaluje repliki na podstawie metryk (CPU, pamięć, custom via Prometheus Adapter). <code>kubectl autoscale deployment app --cpu-percent=70 --min=2 --max=10</code>. Wymaga metrics-server. VPA (Vertical Pod Autoscaler) dostosowuje resources requests. KEDA (Kubernetes Event-Driven Autoscaling) dla event-driven scaling." },
+    { q: "Co to Persistent Volume i Storage Classes?", a: "PV (PersistentVolume): zasób klastra (dysk). PVC (PersistentVolumeClaim): żądanie zasobu przez pod. StorageClass: dynamiczne provisionowanie (<code>aws-ebs, azure-disk, csi-driver</code>). Access modes: ReadWriteOnce, ReadOnlyMany, ReadWriteMany. Reclaim policy: Retain/Delete/Recycle." },
+    { q: "Jak debugować problemy w K8s?", a: "<span class='tip-badge tip-cmd'>CMD</span> <code>kubectl describe pod nazwa</code>. Logi: <code>kubectl logs pod -c container --previous</code>. Exec: <code>kubectl exec -it pod -- bash</code>. Port-forward: <code>kubectl port-forward svc/app 8080:80</code>. Events: <code>kubectl get events --sort-by=.lastTimestamp</code>." },
+    { q: "Co to NetworkPolicy?", a: "Firewall na poziomie podów. Domyślnie brak izolacji — wszystkie pody mogą się komunikować. NetworkPolicy z podSelector, namespaceSelector ogranicza ingress/egress. Wymaga CNI z obsługą (Calico, Cilium). Zero-trust: deny-all + whitelist." },
+    { q: "Co to ArgoCD / Flux?", a: "GitOps tools — synchronizują stan klastra z repozytorium Git. ArgoCD: GUI + webhooks + multi-cluster. Flux: cloud-native, Helm+Kustomize integration. Zasada GitOps: Git = single source of truth. CD pipeline: push do Git → automatyczny deploy." },
+    { q: "Jak skonfigurować Ingress z TLS w K8s?", a: "<span class='tip-badge tip-cmd'>CMD</span> cert-manager + Let's Encrypt: <code>kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml</code>. ClusterIssuer z ACME. Ingress annotation: <code>cert-manager.io/cluster-issuer: letsencrypt-prod</code> + sekcja <code>tls:</code>. Ręcznie: Secret z <code>tls.crt</code> i <code>tls.key</code> + Ingress z <code>spec.tls</code>." },
+    { q: "Co to Kubernetes Operator i jak go zbudować?", a: "Operator = CRD + Controller (pętla reconciliation). Kubebuilder: <code>kubebuilder init --domain example.com</code> + <code>kubebuilder create api --group app --version v1 --kind MyApp</code>. Operator SDK (Go/Ansible/Helm). Reconcile loop: <code>func (r *MyAppReconciler) Reconcile(ctx, req)</code> — porównaj desired vs actual, koryguj. Publish: OLM (Operator Lifecycle Manager)." },
+    { q: "Jak monitorować klaster K8s?", a: "Prometheus + Grafana (kube-prometheus-stack): metryki node, poda, API server. <code>kubectl top nodes/pods</code>. kube-state-metrics: metryki Kubernetes objects. Alerting: reguły dla PodCrashLooping, NodeNotReady, HighMemoryUsage. Logi: Loki lub EFK stack (Elasticsearch+Fluentd+Kibana). Traces: Jaeger/Tempo z OpenTelemetry." }
+  ]},
+
+  { title: "Kubernetes — Mid Level", cat: "Containers", qa: [
+    { q: "Jak działa garbage collection w K8s i co to finalizers?", a: "<span class='tip-badge tip-info'>INFO</span> Garbage collector usuwa orphaned objects (np. ReplicaSet po usunięciu Deployment). <code>ownerReferences</code> definiuje zależności. Finalizers: blokują usunięcie obiektu do czasu wykonania cleanup (np. <code>kubernetes.io/pvc-protection</code>). <code>kubectl patch ... -p '{\"metadata\":{\"finalizers\":[]}}' </code> — force remove." },
+    { q: "Co to Admission Controllers i jak działają?", a: "Interceptują żądania do API po autentykacji i autoryzacji. Mutating: modyfikują (np. inject sidecar, defaultValues). Validating: akceptują/odrzucają. Wbudowane: NamespaceLifecycle, LimitRanger, ResourceQuota, PodSecurity. Custom: Webhooks (MutatingWebhookConfiguration). OPA (Open Policy Agent)/Gatekeeper = policy engine na webhookach." },
+    { q: "Jak działa RBAC w praktyce — typowe błędy?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> Typowe błędy: nadawanie ClusterRole zamiast Role (za szerokie uprawnienia), używanie default ServiceAccount (ma często za dużo uprawnień), brak <code>automountServiceAccountToken: false</code>. Debug: <code>kubectl auth can-i --list --as system:serviceaccount:ns:sa</code>. Audit log: sprawdź forbidden errors." },
+    { q: "Jak diagnozować OOMKilled pod?", a: "<code>kubectl describe pod nazwa</code> — szukaj <code>OOMKilled</code> w Last State. <code>kubectl top pod nazwa</code> — zużycie pamięci. Sprawdź czy limit jest za niski vs rzeczywiste zużycie. <code>dmesg | grep -i oom</code> na node. Rozwiązanie: zwiększ memory limit lub znajdź memory leak w aplikacji. <code>kubectl get events</code>." },
+    { q: "Co to Cluster Autoscaler vs KEDA?", a: "Cluster Autoscaler: skaluje nodes (dodaje/usuwa VM gdy pody są Pending lub node idle). KEDA (Kubernetes Event-Driven Autoscaling): skaluje pody na podstawie zewnętrznych metryk (długość kolejki Kafka/SQS, custom metrics). Razem: KEDA skaluje pody → CA skaluje nodes. Działa z HPA." },
+    { q: "Jak działa ConfigMap i Secret — różnice i bezpieczeństwo?", a: "ConfigMap: nieszyfrowane dane konfiguracyjne. Secret: base64 (nie szyfrowanie!). <span class='tip-badge tip-warn'>WAŻNE</span> Secrets w etcd są nieszyfrowane domyślnie — włącz encryption at rest (<code>EncryptionConfiguration</code>). Lepiej: Vault Agent Injector lub External Secrets Operator (ESO) z AWS Secrets Manager/Azure Key Vault. <code>--from-env-file</code> dla wielu zmiennych." },
+    { q: "Co to Pod Security Standards (PSS)?", a: "Zastąpił PodSecurityPolicy (deprecated K8s 1.21, usunięty 1.25). Trzy profile: Privileged (brak restrykcji), Baseline (minimalne zabezpieczenia), Restricted (hardened). Enforcement przez labels na namespace: <code>pod-security.kubernetes.io/enforce: restricted</code>. Modes: enforce, audit, warn." },
+    { q: "Jak debugować networking w K8s?", a: "<span class='tip-badge tip-cmd'>CMD</span> Test connectivity: <code>kubectl run debug --image=nicolaka/netshoot -it --rm</code>. DNS: <code>nslookup svc-name.namespace</code>. <code>curl -v http://svc:port</code>. Sprawdź endpoints: <code>kubectl get endpoints svc-name</code>. NetworkPolicy blokuje? <code>kubectl describe networkpolicy</code>. CNI logi: <code>journalctl -u kubelet</code>." },
+    { q: "Co to Vertical Pod Autoscaler (VPA) i kiedy używać?", a: "VPA automatycznie dostosowuje CPU/memory requests na podstawie historycznego zużycia. Tryby: Off (tylko rekomendacje), Initial (ustawia przy tworzeniu poda), Auto (restartuje pody z nowymi wartościami). Nie łącz VPA z HPA na CPU/memory — konflikt. Używaj VPA dla stateful apps, HPA dla stateless." },
+    { q: "Jak działają Kubernetes API aggregation i extensions?", a: "API Aggregation: dodaj własne API groups przez APIService resource + własny serwer. CRD (Custom Resource Definition): prostsze, bez własnego serwera, dane w etcd (rozproszony key-value store będący bazą danych Kubernetes). Webhook conversion: migracja wersji CRD. <code>kubectl api-resources</code> lista wszystkich. <code>kubectl explain crd.spec</code>." },
+    { q: "Jak zrobić canary deployment w K8s?", a: "Metoda 1: dwa Deployments (stable + canary) z jednym Service — proporcja przez repliki. Metoda 2: Ingress annotations (Nginx: <code>nginx.ingress.kubernetes.io/canary: 'true'</code>, <code>canary-weight: '20'</code>). Metoda 3: Service Mesh (Istio VirtualService — dokładna kontrola %). Argo Rollouts: dedykowane narzędzie z automatycznym rollback." },
+    { q: "Co to resource quota i LimitRange?", a: "ResourceQuota: limit zasobów per namespace (CPU, memory, liczba podów/services/PVC). LimitRange: domyślne i maksymalne requests/limits per container/pod — zapobiega kontenerom bez limitów. <code>kubectl describe resourcequota -n namespace</code>. Jeśli brak miejsca: <code>kubectl get events | grep FailedCreate</code>." }
+  ]},
+
+  { title: "Kubernetes — Zaawansowane", cat: "Containers", qa: [
+    { q: "Co to Operator Pattern w K8s?", a: "<span class='tip-badge tip-info'>INFO</span> Custom Controller + CRD (Custom Resource Definition). Koduje wiedzę operacyjną jako kod (jak deploy, backup, failover). Przykłady: Prometheus Operator, PostgreSQL Operator (Zalando), cert-manager. Framework: Operator SDK, Kubebuilder. <code>kubectl get crd</code>." },
+    { q: "Co to Resource Requests i Limits?", a: "Request: minimalna gwarancja zasobów (scheduler używa do placement). Limit: maksimum (CPU throttling, Memory → OOMKill). <span class='tip-badge tip-warn'>WAŻNE</span> QoS classes: Guaranteed (req=limit), Burstable (req<limit), BestEffort (brak req/limit — pierwsze do wyrzucenia przy presji)." },
+    { q: "Jak działa Kubernetes scheduler?", a: "Filtering (predykaty): które node'y mogą uruchomić pod (resources, taints, nodeSelector, affinity). Scoring (priorytety): który node jest najlepszy. Binding: przypisanie pod → node. Custom schedulers możliwe. <code>nodeName</code> bypass schedulera." },
+    { q: "Co to Taints i Tolerations?", a: "<code>kubectl taint nodes node1 gpu=true:NoSchedule</code> — żaden pod bez toleracji nie trafi na ten node. Pod toleration: <code>tolerations: [{key: gpu, value: true, effect: NoSchedule}]</code>. Effects: NoSchedule, PreferNoSchedule, NoExecute (eksmituje istniejące pody)." },
+    { q: "Co to Node Affinity i Pod Affinity?", a: "NodeAffinity: reguły gdzie pod może wylądować (requiredDuringScheduling = twarde, preferredDuringScheduling = miękkie). PodAffinity: umieść obok konkretnych podów (np. cache blisko app). PodAntiAffinity: rozsiej pody po różnych node'ach (HA)." },
+    { q: "Co to Ingress Controller i jak działa?", a: "Ingress Controller (Nginx, Traefik, HAProxy, AWS ALB) obsługuje reguły Ingress. Ingress Resource: routing HTTP/HTTPS per hostname/path → Service. TLS termination. <code>kubectl get ingress</code>. Annotations dla zaawansowanej konfiguracji (rate-limit, auth, rewrite)." },
+    { q: "Co to Service Mesh (Istio / Linkerd)?", a: "Sidecar proxy (Envoy) przy każdym podzie. Zapewnia: mTLS (szyfrowanie między serwisami), traffic management (A/B, canary, retries, timeouts), observability (traces, metrics bez zmian w kodzie). Istio: potężny, złożony. Linkerd: prostszy, mniejszy overhead." },
+    { q: "Jak działają Init Containers?", a: "Uruchamiają się przed głównymi kontenerami poda, muszą zakończyć się sukcesem. Użycia: czekaj na gotowość DB (<code>until pg_isready</code>), klonuj repo, inicjalizuj config. Mają dostęp do tych samych volumes co główne kontenery. Uruchamiają się sekwencyjnie." },
+    { q: "Co to Kustomize?", a: "Wbudowany w kubectl (od 1.14) tool do zarządzania konfiguracją bez template engine. <code>kustomization.yaml</code>: resources, patches, namePrefix, commonLabels. Overlays dla środowisk (base + prod/staging). <code>kubectl apply -k ./overlay/prod</code>. Alternatywa dla Helm (bez template engine)." },
+    { q: "Co to etcd i dlaczego jest krytyczny?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> Rozproszony key-value store — serce klastra K8s. Przechowuje cały stan klastra. RAFT consensus protocol. Backup: <code>etcdctl snapshot save backup.db</code>. Restore: <code>etcdctl snapshot restore</code>. HA: nieparzysta liczba członków (3, 5). Utrata etcd = utrata klastra." },
+    { q: "Jak działa rolling update i rollback?", a: "<code>kubectl set image deployment/app app=image:v2</code>. Strategia: <code>RollingUpdate</code> (maxUnavailable, maxSurge), <code>Recreate</code> (downtime). Historia: <code>kubectl rollout history deployment/app</code>. Rollback: <code>kubectl rollout undo deployment/app --to-revision=2</code>. Pause/resume rolling update." },
+    { q: "Co to Pod Disruption Budget (PDB)?", a: "Gwarantuje minimalną dostępność podczas voluntary disruptions (drain, rolling update). <code>minAvailable: 2</code> lub <code>maxUnavailable: 1</code>. <code>kubectl drain node1 --ignore-daemonsets</code> respektuje PDB. Chroni przed przypadkowym downtime podczas maintenance." }
+  ]},
+
+  { title: "Kubernetes — Operator & GitOps", cat: "Containers", qa: [
+    { q: "Jak napisać prosty Kubernetes Operator?", a: "<span class='tip-badge tip-info'>INFO</span> Operator SDK (Go): <code>operator-sdk init --domain firma.pl --repo github.com/firma/op</code>. Stwórz API: <code>operator-sdk create api --group app --version v1 --kind MyApp</code>. Reconcile loop: sprawdź desired state (CR) vs actual state → utwórz/zaktualizuj/usuń zasoby. <code>controller-runtime</code>: <code>ctrl.SetupWithManager(mgr).For(&apiv1.MyApp{}).Owns(&appsv1.Deployment{}).Complete(r)</code>. Kubebuilder alternatywa." },
+    { q: "Co to FluxCD i jak różni się od ArgoCD?", a: "Flux: cloud-native, GitOps toolkit (Source Controller, Kustomize Controller, Helm Controller). CLI: <code>flux bootstrap github --owner=org --repository=fleet-infra</code>. Image Automation: automatyczna aktualizacja tagów w repo. Różnice od ArgoCD: Flux bardziej composable (każdy kontroler osobno), brak wbudowanego GUI (osobna instalacja), lepszy Helm support. ArgoCD: lepszy UI, multi-cluster management." },
+    { q: "Jak zarządzać sekretami w GitOps (Sealed Secrets / ESO)?", a: "Sealed Secrets: <code>kubeseal --fetch-cert > pub.crt && echo 'mypass' | kubeseal --raw --from-file=/dev/stdin --scope cluster-wide --cert pub.crt</code>. SealedSecret resource w Git → kontroler deszyfruje w klastrze. External Secrets Operator: CR <code>ExternalSecret</code> pobiera z AWS Secrets Manager/Vault/Azure Key Vault. ESO lepsze dla wielu klastrów. <code>SecretStore</code> definiuje backend." },
+    { q: "Co to Kustomize overlays i jak strukturyzować?", a: "<code>base/</code>: deployment.yaml, service.yaml, <code>kustomization.yaml: resources: [deployment.yaml]</code>. Overlays: <code>overlays/prod/kustomization.yaml: bases: [../../base]\npatchesStrategicMerge: [replica-patch.yaml]\nconfigMapGenerator: [{name: config, files: [config.properties]}]</code>. <code>kubectl diff -k overlays/prod</code>. <code>kubectl apply -k overlays/prod</code>. Komponenty (reusable across overlays): <code>kind: Component</code>." },
+    { q: "Jak debugować CrashLoopBackOff?", a: "<span class='tip-badge tip-cmd'>CMD</span> <code>kubectl describe pod nazwa -n ns</code> → Events section. <code>kubectl logs pod -c container --previous</code> — logi poprzedniej instancji. Sprawdź exit code w <code>Last State</code>. Common causes: błędna konfiguracja (brak env), brak pliku (błędny mount), OOM (zbyt mały limit), błąd aplikacji (sprawdź logi), liveness probe zbyt agresywna. <code>kubectl debug pod --copy-to=debug-pod --image=busybox</code>." }
+  ]},
+
+  { title: "Ansible — Automatyzacja", cat: "Infra/IaC", qa: [
+    { q: "Jak działa Ansible i co to idempotentność?", a: "Agentless — łączy przez SSH (WinRM dla Windows). Playbooki w YAML. <span class='tip-badge tip-info'>INFO</span> Idempotentność = wielokrotne uruchomienie daje ten sam efekt (<code>state: present</code> nie tworzy ponownie jeśli istnieje)." },
+    { q: "Struktura roli Ansible?", a: "<code>roles/nazwa/{tasks,handlers,vars,defaults,templates,files,meta}/main.yml</code>. Wywołanie: sekcja <code>roles:</code> w playbooku. Galaxy: <code>ansible-galaxy role install geerlingguy.nginx</code>. Init nowej roli: <code>ansible-galaxy role init moja_rola</code>." },
+    { q: "Priorytety zmiennych (od najniższego)?", a: "defaults → inventory vars → group_vars/all → group_vars → host_vars → play vars → task vars → set_fact → extra vars (<code>-e</code>). <span class='tip-badge tip-warn'>WAŻNE</span> Extra vars mają najwyższy priorytet i nadpisują wszystko. Pełna lista: 22 poziomy." },
+    { q: "Co to Ansible Vault?", a: "<span class='tip-badge tip-cmd'>CMD</span> Szyfrowanie AES-256. <code>ansible-vault create secrets.yml</code>. Szyfruj string: <code>ansible-vault encrypt_string 'tajne' --name 'db_pass'</code>. Uruchomienie: <code>ansible-playbook site.yml --ask-vault-pass</code>. Plik z hasłem: <code>--vault-password-file ~/.vault_pass</code>." },
+    { q: "Jak działają handlery?", a: "Handlery wywoływane przez <code>notify:</code> — uruchamiane raz na końcu play, niezależnie ile razy notify. Przykład: task instaluje nginx → notify: restart nginx → handler wykonuje restart. <code>meta: flush_handlers</code> wymusza wcześniejsze wykonanie." },
+    { q: "Co to Jinja2 w Ansible?", a: "Silnik szablonów. W templates (j2 files): <code>{{ var }}</code>, <code>{% if condition %}</code>, <code>{% for item in list %}</code>. Filtry: <code>{{ var | default('val') }}</code>, <code>{{ list | join(',') }}</code>, <code>{{ path | basename }}</code>. Moduł template: <code>src: nginx.conf.j2</code>." },
+    { q: "Jak debugować playbook?", a: "<span class='tip-badge tip-cmd'>CMD</span> <code>-v/-vvv/-vvvv</code> dla verbosity. <code>debug: msg='{{ var }}'</code>. <code>--check</code> dry-run. <code>--diff</code> pokazuje zmiany. <code>--start-at-task 'nazwa zadania'</code>. <code>--tags/--skip-tags</code>. <code>--limit hostname</code>. <code>ansible-lint playbook.yml</code>." },
+    { q: "Co to Ansible Collections?", a: "Paczki ról, modułów, pluginów. Namespace: <code>community.general</code>, <code>ansible.posix</code>. Instalacja: <code>ansible-galaxy collection install community.docker</code>. Plik zależności: <code>requirements.yml</code>. Zastąpiły 'loose roles' jako standard dystrybucji." },
+    { q: "Jak używać modułu template vs copy?", a: "<code>template</code>: przetwarza Jinja2, dynamiczna zawartość (np. nginx.conf z zmiennymi). <code>copy</code>: kopiuje statyczny plik, brak przetwarzania Jinja. <code>lineinfile</code>: modyfikuje konkretną linię. <code>blockinfile</code>: wstawia blok tekstu." },
+    { q: "Co to Ansible Tower / AWX?", a: "AWX (Ansible Web eXecutor) = open-source. Tower = enterprise (teraz AAP — Ansible Automation Platform). GUI + REST API + RBAC + job scheduling + webhooks + credential management. Inventory jako kod lub dynamiczne. Integracja z Vault, SCM (Git). Alternatywa: Ansible Semaphore (lżejszy)." },
+    { q: "Jak zarządzać inventory dynamicznym?", a: "Dynamic inventory: skrypt lub plugin zwracający JSON. <code>ansible-inventory --list</code>. Pluginy AWS: <code>aws_ec2</code>, VMware: <code>vmware_vm_inventory</code>. Konfiguracja w <code>inventory.yml</code> z odpowiednim pluginem i filtrami." },
+    { q: "Jak skonfigurować load balancer przez Ansible?", a: "<span class='tip-badge tip-cmd'>CMD</span> HAProxy: moduł <code>ansible.builtin.template</code> dla haproxy.cfg + <code>ansible.builtin.service</code>. Nginx: <code>community.general.nginx</code> lub template z upstream block. AWS ALB: <code>community.aws.elb_application_lb</code>. Przykład HAProxy: <code>- name: configure haproxy\n  template:\n    src: haproxy.cfg.j2\n    dest: /etc/haproxy/haproxy.cfg\n  notify: restart haproxy</code>. Balancing group: użyj zmiennych <code>group_vars/lb</code>." },
+    { q: "Jak zarządzać pakietami przez Ansible na wielu dystrybucjach?", a: "Moduł <code>ansible.builtin.package</code> (abstrakcja nad dnf/apt/yum). Lub per-distro: <code>when: ansible_os_family == 'RedHat'</code>. Elegancko: <code>vars_files: ['vars/{{ ansible_os_family }}.yml']</code> z mapą package names. <code>package_facts</code> moduł sprawdza zainstalowane pakiety." },
+    { q: "Co to ansible-navigator i jak różni się od ansible-playbook?", a: "<span class='tip-badge tip-info'>INFO</span> ansible-navigator: nowe narzędzie oparte na EE (Execution Environments — kontenery z Ansiblem i kolekcjami). Zastępuje ansible-playbook w AWX/AAP (Ansible Automation Platform). <code>ansible-navigator run playbook.yml --mode stdout</code>. EE = kontener Docker z Ansiblem + kolekcjami + zależnościami. Buduj: <code>ansible-builder build</code>. Zapewnia powtarzalność środowiska." }
+  ]},
+
+  { title: "Ansible / Terraform — Mid Level", cat: "Infra/IaC", qa: [
+    { q: "Jak działa Ansible fact caching i kiedy używać?", a: "<span class='tip-badge tip-info'>INFO</span> Facts zbierane przy każdym play (gather_facts: yes) — kosztowne przy dużej inwentaryzacji. Cache: <code>fact_caching = redis</code> lub <code>jsonfile</code> w ansible.cfg. <code>fact_caching_timeout = 3600</code>. Odśwież: <code>--flush-cache</code>. Custom facts: <code>/etc/ansible/facts.d/*.fact</code> (JSON/INI) dostępne jako <code>ansible_local</code>." },
+    { q: "Co to Ansible molecule i jak testować role?", a: "Framework do testowania ról Ansible. Workflow: <code>molecule init role myrole</code> → definiuj scenariusze (Docker/Vagrant/EC2) → <code>molecule test</code> (create + converge + verify + destroy). Verifier: Testinfra (Python) lub Ansible verify. CI integration: uruchamiaj molecule w pipeline przy każdym PR." },
+    { q: "Jak optymalizować wydajność Ansible dla dużych inwentaryzacji?", a: "<span class='tip-badge tip-cmd'>CMD</span> <code>forks = 50</code> (domyślnie 5). <code>pipelining = True</code> (mniej połączeń SSH). <code>ssh_args = -o ControlMaster=auto -o ControlPersist=60s</code>. <code>strategy: free</code> (nie czeka na wolniejsze hosty). <code>gather_facts: no</code> gdzie zbędne + fact cache. <code>--limit</code> dla podzbioru. Mitogen strategy plugin: 7x szybszy." },
+    { q: "Jak działa Ansible error handling?", a: "<code>ignore_errors: yes</code> — kontynuuj mimo błędu. <code>failed_when: result.rc != 0 and 'not found' not in result.stderr</code> — custom fail condition. <code>changed_when: false</code> — nie raportuj jako changed. <code>block/rescue/always</code> — try/catch/finally. <code>any_errors_fatal: true</code> — zatrzymaj wszystkie hosty gdy jeden fail." },
+    { q: "Co to Terraform workspace vs multiple state files?", a: "Workspace: ten sam kod, osobny state per workspace (dev/staging/prod). Prosto ale zmienna <code>terraform.workspace</code> w kodzie = coupling. Lepsze podejście dla dużych proj: osobne katalogi per środowisko (DRY przez Terragrunt) lub osobne repozytoria. Workspace dobry dla krótkotrwałych środowisk (feature branches)." },
+    { q: "Jak debugować Terraform — co gdy plan nie zgadza się z rzeczywistością?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> Drift: <code>terraform plan</code> pokazuje różnicę między state a rzeczywistością. Import istniejących zasobów: <code>terraform import aws_instance.web i-1234567890</code>. Refresh: <code>terraform apply -refresh-only</code>. Debug: <code>TF_LOG=DEBUG terraform plan</code>. State show: <code>terraform state show aws_instance.web</code>." },
+    { q: "Co to Terraform testing — terratest, check blocks?", a: "Terratest (Go): deploy infrastruktury w testowym środowisku, weryfikuj przez API/SSH, destroy. <code>check</code> blocks (Terraform 1.5+): stałe asercje w konfiguracji (np. sprawdź czy cert nie wygasa). <code>precondition/postcondition</code>: walidacja input/output. <code>terraform validate</code> + <code>tflint</code> dla statycznej analizy." },
+    { q: "Jak zarządzać sekretami w Terraform?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> Nigdy nie hardcode'uj sekretów w .tf plikach (trafiają do state i SCM). Podejścia: zmienne środowiskowe (<code>TF_VAR_db_password</code>), Vault provider (<code>data.vault_generic_secret</code>), AWS Secrets Manager data source, SOPS + terraform-sops. State zawiera wrażliwe dane — szyfruj backend (S3+KMS). <code>sensitive = true</code> dla outputs." },
+    { q: "Co to Terragrunt i kiedy warto użyć?", a: "Wrapper nad Terraform rozwiązujący DRY problem. <code>find_in_parent_folders()</code> — dziedzicz konfigurację backendu. <code>dependency</code> blocks — zależności między modułami. <code>terragrunt run-all plan</code> — uruchom cały stack. Warto gdy: wiele środowisk, wiele modułów, duplikacja backend config. Alternatywa: Terraform Stacks (nowy feature)." },
+    { q: "Jak Ansible obsługuje idempotentność przy złożonych zadaniach?", a: "<code>command/shell</code> NIE są idempotentne — zawsze uruchamiają. Rozwiązanie: <code>creates=/path/to/file</code> (skip jeśli plik istnieje), <code>when: not stat_result.stat.exists</code>, <code>changed_when: false</code>. Preferuj dedykowane moduły (<code>file, copy, template, user, service</code>) — mają wbudowaną idempotentność. Custom moduły: sprawdzaj stan przed zmianą." }
+  ]},
+
+  { title: "Ansible — Load Balancer & Wdrożenia", cat: "Infra/IaC", qa: [
+    { q: "Jak skonfigurować nginx load balancer przez Ansible?", a: "<span class='tip-badge tip-cmd'>CMD</span> Moduł <code>ansible.builtin.template</code> do wdrożenia config nginx. Szablon j2: <code>upstream backend { {% for host in groups['webservers'] %}server {{ hostvars[host]['ansible_default_ipv4']['address'] }}:8080; {% endfor %} }\nserver { listen 80; location / { proxy_pass http://backend; } }</code>. Task: <code>template: src=nginx_lb.conf.j2 dest=/etc/nginx/conf.d/lb.conf</code> + <code>notify: reload nginx</code>." },
+    { q: "Jak wdrożyć HAProxy z dynamicznymi backendami przez Ansible?", a: "Szablon j2 dla haproxy.cfg: <code>backend web_servers\n  balance roundrobin\n  {% for h in groups['web'] %}\n  server {{ h }} {{ hostvars[h]['ansible_default_ipv4']['address'] }}:80 check\n  {% endfor %}</code>. Moduł <code>community.general.haproxy</code>: zarządzanie stanem serwerów w działającym HAProxy: <code>community.general.haproxy: state=disabled host={{ item }} socket=/var/run/haproxy.sock</code>. Używaj podczas rolling deploy." },
+    { q: "Jak zrobić rolling deploy z wyłączaniem z load balancera?", a: "<code>serial: 1</code> lub <code>serial: '25%'</code> — przetwarza po jednym hoście. Flow: 1) <code>community.general.haproxy: state=disabled host={{ inventory_hostname }}</code>, 2) wdróż aplikację, 3) <code>uri: url=http://{{ inventory_hostname }}/health</code> z <code>until/retries</code>, 4) <code>haproxy: state=enabled</code>. <code>any_errors_fatal: true</code> + <code>max_fail_percentage: 0</code> dla bezpieczeństwa." },
+    { q: "Jak używać modułu ansible.builtin.uri do healthchecków i API?", a: "<code>- name: wait for app\n  ansible.builtin.uri:\n    url: http://{{ inventory_hostname }}:8080/health\n    status_code: 200\n  register: result\n  until: result.status == 200\n  retries: 15\n  delay: 10</code>. POST z JSON: <code>method: POST, body_format: json, body: {key: value}</code>. Auth: <code>url_username/url_password</code> lub <code>headers: {Authorization: 'Bearer {{ token }}'}</code>. <code>validate_certs: no</code> dla self-signed (dev only)." },
+    { q: "Jak zarządzać certyfikatami SSL przez Ansible (community.crypto)?", a: "<code>community.crypto.openssl_privatekey: path=/etc/ssl/private/app.key size=4096</code>. CSR: <code>community.crypto.openssl_csr: path=app.csr privatekey_path=app.key common_name=app.firma.pl</code>. Self-signed: <code>community.crypto.x509_certificate: provider=selfsigned</code>. Let's Encrypt: <code>community.crypto.acme_certificate: account_key_src=... csr=... dest=cert.pem acme_directory=https://acme-v02.api.letsencrypt.org/directory</code>." }
+  ]},
+
+  { title: "Terraform / IaC", cat: "Infra/IaC", qa: [
+    { q: "Terraform workflow?", a: "<span class='tip-badge tip-cmd'>CMD</span> <code>init</code> (pobiera providerów, inicjalizuje backend) → <code>validate</code> → <code>plan</code> (diff) → <code>apply</code> → <code>destroy</code>. State: local (dev) lub remote backend (S3+DynamoDB locking). Workspace: <code>terraform workspace new prod</code>." },
+    { q: "Co to Terraform modules?", a: "Reużywalne bloki infrastruktury. Source: <code>./modules/vpc</code>, Git URL, lub registry.terraform.io. Wersjonowanie przez <code>version = '~> 2.0'</code>. Przeazaj zmienne przez <code>variable</code>/<code>output</code>. Moduły oficjalne: <code>terraform-aws-modules</code>." },
+    { q: "Jak zarządzać state?", a: "Remote backend: S3 (AWS) + DynamoDB (locking). <code>terraform state list/show/mv/rm/import</code>. State zawiera wrażliwe dane — szyfruj w S3 + KMS. <code>terraform state pull > backup.tfstate</code>. Nigdy nie edytuj ręcznie. Terraform Cloud ma state management wbudowany." },
+    { q: "Różnica resource vs data source?", a: "<code>resource</code>: tworzy/zarządza/niszczy infrastrukturę. <code>data</code>: odczytuje istniejące zasoby (tylko lookup, brak modyfikacji). Przykład: <code>data \"aws_ami\" \"ubuntu\" { most_recent = true ... }</code> zwraca ID aktualnego AMI." },
+    { q: "Co to locals, variables, outputs?", a: "<code>variable</code>: wejście od użytkownika lub CI/CD. <code>locals</code>: obliczone wartości wewnętrzne (DRY). <code>output</code>: eksportuje wartości po apply (np. IP instancji). Precedencja zmiennych: tfvars < env (TF_VAR_) < -var flag < default." },
+    { q: "Co to Terraform lifecycle i meta-arguments?", a: "<code>count</code> i <code>for_each</code>: tworzenie wielu zasobów. <code>depends_on</code>: jawna zależność. <code>lifecycle { create_before_destroy = true }</code>. <code>prevent_destroy = true</code> zabezpiecza przed <code>terraform destroy</code>. <code>ignore_changes</code> ignoruje drift." },
+    { q: "Jak działają provisioners i kiedy ich unikać?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> <code>local-exec</code>, <code>remote-exec</code>, <code>file</code>. Terraform traktuje je jako ostateczność — łamią idempotentność. Lepsze alternatywy: user_data (cloud-init), Ansible po provisioning, packer dla AMI. Provisioners = code smell." },
+    { q: "Co to Terragrunt?", a: "Wrapper nad Terraform — DRY konfiguracja, remote state automatycznie, środowiska (dev/staging/prod) jako foldery z minimalną konfiguracją. <code>include 'root' { path = find_in_parent_folders() }</code>. Run-all dla dependencji między modułami." },
+    { q: "Jak testować infrastrukturę Terraform?", a: "<span class='tip-badge tip-info'>INFO</span> Terratest (Go): deploy w test environment, assert przez API, destroy. <code>terraform test</code> (built-in od TF 1.6): pliki <code>.tftest.hcl</code>. Statyczna analiza: <code>tflint</code>, <code>trivy</code> (bezpieczeństwo), <code>checkov</code>. Pre-commit hook: <code>terraform fmt --check && terraform validate</code>. Policy as code: Sentinel (Terraform Cloud) lub OPA." },
+    { q: "Jak zarządzać wieloma środowiskami w Terraform bez duplikacji?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> Podejście 1: Terragrunt z <code>inputs = merge(local.common, local.env_specific)</code>. Podejście 2: moduły + osobne <code>envs/dev/main.tf</code>. Podejście 3: Terraform Workspaces (proste, ale coupling). Zmienna środowiskowa: <code>TF_VAR_env=prod terraform apply</code>. Najlepsza praktyka: moduły + env-specific tfvars files." },
+    { q: "Co to Pulumi i czym różni się od Terraform?", a: "Pulumi: IaC w prawdziwych językach programowania (TypeScript, Python, Go, C#). Warunki, pętle, klasy bez HCL limitations. State: Pulumi Cloud lub self-hosted. Import z Terraform: <code>pulumi convert --from terraform</code>. Wadą: mniejszy ekosystem, trudniejszy debugging. Terraform: declarative HCL, większa społeczność, więcej providerów." }
+  ]},
+
+  { title: "Terraform — Zaawansowane", cat: "Infra/IaC", qa: [
+    { q: "Co to Terraform provider development?", a: "<span class='tip-badge tip-info'>INFO</span> Provider Plugin SDK v2 (starszy) lub Terraform Plugin Framework (nowszy, Go). Struktura: <code>resource_server.go</code> z CRUD functions, <code>provider.go</code> z konfiguracją. Schema: <code>schema.Schema{Type: schema.TypeString, Required: true}</code>. Test: Terraform acceptance tests z prawdziwymi zasobami. Publikacja: Terraform Registry + GitHub Actions. Używaj gdy brak istniejącego providera." },
+    { q: "Jak używać Terraform z wieloma cloudami (multi-cloud)?", a: "Osobne provider bloki: <code>provider \"aws\" { region = \"eu-west-1\" alias = \"eu\" }</code>. Użycie: <code>resource \"aws_instance\" \"x\" { provider = aws.eu ... }</code>. Cross-cloud: dane z jednego clouda w drugim przez <code>data</code> sources. Moduły z <code>providers</code> argument dla przekazania. State per cloud w osobnych workspace/katalogach. Terragrunt dependency blocks dla cross-module outputs." },
+    { q: "Co to Terraform Sentinel i policy as code?", a: "Sentinel: policy engine Terraform Cloud/Enterprise. Polityki sprawdzają plany przed apply. Przykład: <code>import \"tfplan/v2\" as tfplan\nall_instances_use_approved_ami = rule { all tfplan.resource_changes[\"aws_instance\"] as _, rc { rc.change.after.ami == \"ami-approved\" } }</code>. Poziomy: advisory (warn), soft-mandatory (override możliwy), hard-mandatory (blokuje). Open-source alternatywa: OPA + conftest." },
+    { q: "Jak zarządzać Terraform state w dużych organizacjach?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> Podział state: per-środowisko, per-komponent (sieć osobno, aplikacja osobno). Remote backend S3+DynamoDB: <code>backend \"s3\" { bucket=\"tf-state\" key=\"prod/network/terraform.tfstate\" dynamodb_table=\"tf-locks\" encrypt=true }</code>. Cross-state refs: <code>data \"terraform_remote_state\"</code>. State locking przy concurrent apply. Terraform Cloud: collaboration features, run history, policy enforcement." },
+    { q: "Jak testować moduły Terraform (terratest)?", a: "Terratest (Go): deploy real infra → verify → destroy. <code>defer terraform.Destroy(t, opts)</code>. <code>terraform.InitAndApply(t, opts)</code>. <code>http_helper.HttpGetWithRetry</code>. Szybsze testy: <code>terraform validate</code> + <code>tflint</code> + <code>checkov</code> dla statycznej analizy. <code>terraform plan -out=tfplan && conftest test tfplan.json</code> dla OPA policies. Unit tests: mockery + mocking providers (eksperymentalne)." }
+  ]},
+
+  { title: "Git — Kontrola wersji", cat: "Infra/IaC", qa: [
+    { q: "Git flow vs trunk-based development?", a: "Git flow: długo żyjące branche (main, develop, feature/*, release/*, hotfix/*). Dobre dla release cycles z wersjonowaniem. Trunk-based: wszystko do main, krótkie branche (< 2 dni), feature flags, CI/CD friendly — standard w DevOps." },
+    { q: "Co to rebase vs merge?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> merge: zachowuje historię, merge commit. rebase: przepisuje historię, liniowy log. <code>git rebase -i HEAD~3</code>: interactive squash/edit/drop. Złota zasada: nigdy nie rebase'uj publicznych/shared branchy. Fast-forward merge: <code>--ff-only</code>." },
+    { q: "Jak cofnąć zmiany?", a: "<code>git revert HEAD</code>: nowy commit cofający (bezpieczny, nie zmienia historii). <code>git reset --soft HEAD~1</code>: cofnij commit, zachowaj staged. <code>--mixed</code>: unstaged. <code>--hard</code>: usuń zmiany (niebezpieczny). <code>git restore plik</code>: odrzuć working tree. <code>git reflog</code> = twój ratunek." },
+    { q: "Co to git hooks?", a: "Skrypty w <code>.git/hooks/</code> wykonywane przed/po operacjach. pre-commit: lint/format. commit-msg: walidacja formatu (Conventional Commits). pre-push: testy. post-receive: deployment (bare repo). Narzędzia: <code>pre-commit</code> framework, <code>husky</code> (Node)." },
+    { q: "Co to Conventional Commits?", a: "Standard formatowania commit messages: <code>type(scope): description</code>. Typy: feat, fix, docs, style, refactor, test, chore. Triggery: feat → minor version bump, fix → patch, BREAKING CHANGE → major. Automatyczna generacja CHANGELOG. <code>semantic-release</code>." },
+    { q: "Jak działa git cherry-pick i kiedy używać?", a: "<code>git cherry-pick abc123</code> — aplikuje konkretny commit na aktualny branch. Użycie: backport bugfixa do starszej release branch. <code>cherry-pick A..B</code> zakres. Unikaj regularnego cherry-pick — sygnał złej struktury branchy. <code>--no-commit</code> dla podglądu." },
+    { q: "Jak działa git bisect?", a: "<span class='tip-badge tip-cmd'>CMD</span> Binarne wyszukiwanie regresjii. <code>git bisect start</code>. <code>git bisect bad HEAD</code> (aktualny = zły). <code>git bisect good v1.0</code> (ostatni dobry). Git checkoutuje środkowy commit — testuj, oznacz <code>good/bad</code>. Po znalezieniu: <code>git bisect reset</code>. Automatyzacja: <code>git bisect run ./test.sh</code> — skrypt exit 0 = good, exit 1 = bad." },
+    { q: "Co to git submodules i git subtree?", a: "Submodule: repozytorium wewnątrz repozytorium (wskaźnik na konkretny commit). <code>git submodule add URL path</code>. Clone z submodułami: <code>git clone --recurse-submodules</code>. Update: <code>git submodule update --init --remote</code>. Subtree: wbudowuje całą historię drugiego repo. Prostszy dla użytkowników (brak dodatkowych komend), trudniejszy w zarządzaniu. Użyj subtree gdy chcesz kontrybuować z powrotem do projektu." },
+    { q: "Jak skonfigurować GitLab CI/CD pipeline?", a: "<code>.gitlab-ci.yml</code>: <code>stages: [build, test, deploy]\nbuild:\n  stage: build\n  image: maven:3.8\n  script: mvn package\n  artifacts:\n    paths: [target/*.jar]\ndeploy-prod:\n  stage: deploy\n  environment: production\n  when: manual\n  script: ./deploy.sh</code>. Runners: shared (GitLab.com), specific (własny), Docker executor. Variables: Settings → CI/CD → Variables (masked/protected)." }
+  ]},
+
+  { title: "AWS — Amazon Web Services", cat: "Cloud", qa: [
+    { q: "Kluczowe usługi AWS dla Linux admina?", a: "EC2 (VM), S3 (object storage), VPC (sieć), IAM (auth/authz), CloudWatch (monitoring/logi), Systems Manager (patch, session bez SSH), ECS/EKS (kontenery), Route53 (DNS), RDS (managed DB), CloudTrail (audit), KMS (szyfrowanie)." },
+    { q: "Co to AWS IAM i best practices?", a: "Users, Groups, Roles, Policies (JSON). <span class='tip-badge tip-warn'>WAŻNE</span> Nie używaj root account na co dzień. MFA wszędzie. Roles dla EC2/Lambda (nie access keys). Zasada least privilege. IAM Access Analyzer. Rotuj access keys. <code>aws sts get-caller-identity</code> — sprawdź kto jesteś." },
+    { q: "Co to VPC i kluczowe komponenty?", a: "Virtual Private Cloud. Subnety public/private, Internet Gateway, NAT Gateway (private → internet), Route Tables, Security Groups (stateful), NACLs (stateless). VPC Peering, Transit Gateway (hub-and-spoke). PrivateLink dla usług AWS bez internetu." },
+    { q: "Security Groups vs NACLs?", a: "SG: stateful (reply automatyczny), per-instancja, allow rules only. NACL: stateless (osobne reguły dla ruchu powrotnego), per-subnet, allow i deny rules, numerowane. SG: pierwsza linia obrony. NACL: dodatkowa warstwa per subnet." },
+    { q: "Co to AWS Systems Manager (SSM)?", a: "<span class='tip-badge tip-info'>INFO</span> Session Manager: dostęp do EC2 bez SSH/bastion (przez agent). Patch Manager: automatyczne patche. Parameter Store: sekrety/config (bezpłatny). Secrets Manager (płatny, rotacja). Run Command: zdalne komendy na flotcie. Inventory: skaner zainstalowanego oprogramowania." },
+    { q: "Jak działa Auto Scaling?", a: "ASG (Auto Scaling Group) skaluje EC2 na podstawie polityk: Target Tracking (np. CPU 70%), Step Scaling (reaguje na alarmy), Scheduled. Launch Template definiuje konfigurację instancji. Łączy się z ALB dla health checks i traffic distribution." },
+    { q: "Co to CloudWatch i jak monitorować?", a: "<span class='tip-badge tip-cmd'>CMD</span> Metryki (built-in + custom), Logi (Log Groups/Streams), Alarms (SNS/Auto Scaling). Agent (<code>amazon-cloudwatch-agent</code>) dla logów i metryk OS-level. Insights do analityki logów (SQL-like). Dashboards. Contributor Insights dla wzorców." },
+    { q: "Co to S3 i storage classes?", a: "Object storage. Storage classes: Standard, Intelligent-Tiering, Standard-IA, One Zone-IA, Glacier Instant/Flexible/Deep Archive. Lifecycle policies dla automatycznego tiering. Wersjonowanie, bucket policies, presigned URLs. S3 Transfer Acceleration przez CloudFront." },
+    { q: "Co to ECS vs EKS?", a: "ECS: managed container orchestration (native AWS, simpler). Fargate: serverless containers (bez zarządzania EC2). EKS: managed Kubernetes — większy ecosystem, multi-cloud portability, bardziej złożony. ECS tańszy i prostszy dla małych zespołów." },
+    { q: "Co to AWS Lambda i kiedy używać?", a: "<span class='tip-badge tip-info'>INFO</span> Serverless — kod wykonywany na zdarzenie (S3 event, API GW, SQS, CloudWatch Events). Limit: 15 min timeout, 10GB RAM. Cena: per invocation + duration. Użyj gdy: ETL, webhooks, scheduled tasks, event processing. Problemy: cold start, vendor lock-in, trudny debugging. Lokalnie: SAM CLI lub LocalStack." },
+    { q: "Jak zarządzać kosztami AWS?", a: "<span class='tip-badge tip-cmd'>CMD</span> Cost Explorer: analiza per service/tag. Budgets: alert przy przekroczeniu. Savings Plans / Reserved Instances: -40-72% vs On-Demand. Spot Instances: -90% dla fault-tolerant workloads (K8s, Batch). Rightsizing: <code>AWS Compute Optimizer</code>. Tagi: <code>Project, Environment, Owner</code> dla alokacji kosztów. S3 Intelligent-Tiering." },
+    { q: "Co to AWS CDK i kiedy używać zamiast Terraform?", a: "CDK: IaC w TypeScript/Python/Java/C# — generuje CloudFormation. Lepszy dla: zespołów z silną preferencją do jednego języka, złożonej logiki, tight AWS integration. Terraform: multi-cloud, lepszy ekosystem, HCL czytelny dla ops. CDK Terraform (cdktf): CDK + Terraform providers. Oba mają konstrukty/moduły jako bloki budowania." }
+  ]},
+
+  { title: "AWS — Zaawansowane", cat: "Cloud", qa: [
+    { q: "Co to AWS EKS i jak zarządzać?", a: "<span class='tip-badge tip-cmd'>CMD</span> EKS: managed Kubernetes control plane. <code>eksctl create cluster --name prod --region eu-west-1 --nodegroup-name workers --node-type t3.medium</code>. Kubeconfig: <code>aws eks update-kubeconfig --name prod</code>. Managed node groups: automatyczne AMI updates, drain przed terminacją. Fargate profiles: serverless pody. IAM roles for service accounts (IRSA): <code>eksctl create iamserviceaccount ...</code>." },
+    { q: "Jak skonfigurować AWS VPC z best practices?", a: "Multi-AZ: subnety public/private per AZ. Private subnety: aplikacje i DB. Public: load balancery i NAT GW. Routing: private subnet → NAT GW → IGW. VPC Flow Logs: <code>aws ec2 create-flow-logs --resource-ids vpc-xxx --traffic-type ALL --log-destination-type s3</code>. Security: NACLs jako backup dla SG. Private Link dla usług AWS. VPC endpoints (Gateway dla S3/DynamoDB, Interface dla pozostałych)." },
+    { q: "Co to AWS IAM Roles Anywhere i federation?", a: "Roles Anywhere: certyfikaty PKI jako credentials dla on-premise serwerów (nie potrzeba access keys). OIDC Federation: GitHub Actions OIDC → AWS role bez long-lived credentials. <code>assume-role-with-web-identity</code>. IAM Identity Center (SSO): centralny access management dla multi-account. Permission Sets: pre-defined role sets per account. SCP (Service Control Policies) na poziomie OU." },
+    { q: "Jak monitorować AWS koszty?", a: "Cost Explorer: analiza per service/account/tag. Budgets: alerty przy przekroczeniu. Cost Anomaly Detection: ML-based alerts. Trusted Advisor: optymalizacja. Tagi: <code>Cost Center, Environment, Team</code> — wymagaj przez SCP. Spot Instances: do 90% taniej dla tolerant workloads. Reserved Instances / Savings Plans: do 72% dla predictable workloads. <code>aws ce get-cost-and-usage --granularity MONTHLY</code>." },
+    { q: "Co to AWS Landing Zone i Control Tower?", a: "Landing Zone: wielokontowe środowisko AWS z security baseline (audit account, log archive account, SCPs, guardrails). Control Tower: managed service do konfiguracji Landing Zone. Account Vending Machine: automatyczne tworzenie nowych kont. Guardrails: preventive (SCP) + detective (Config rules). Customizations for Control Tower (CfCT): IaC dla customizacji. Alternatywa: własna implementacja przez Terraform + Organizations." }
+  ]},
+
+  { title: "Azure / GCP — Chmury", cat: "Cloud", qa: [
+    { q: "Azure AD vs AWS IAM — kluczowe różnice?", a: "Azure AD: pełnoprawny IdP (OAuth2, OIDC, SAML), synchronizacja z on-premise AD (AD Connect), Conditional Access, MFA. AWS IAM: per-account, brak federacji by default. IAM Identity Center (SSO) integruje zewnętrzne IdP. Azure AD bardziej rozbudowany enterprise." },
+    { q: "Co to Azure Resource Manager (ARM)?", a: "Warstwa zarządzania dla wszystkich zasobów Azure. Deployment przez ARM templates (JSON) lub Bicep (DSL). Resource Groups jako unit zarządzania. RBAC (Role-Based Access Control) na poziomie subscription/resource group/resource. Tags dla organizacji i kosztów." },
+    { q: "Azure networking — kluczowe koncepty?", a: "VNet (jak AWS VPC), Subnety, NSG (Network Security Groups — jak Security Groups), Azure Firewall, Application Gateway (L7 LB), Azure Load Balancer (L4), VPN Gateway, ExpressRoute (direct connect), Virtual WAN." },
+    { q: "Co to GCP i kluczowe usługi?", a: "GCE (VM), GCS (storage), GKE (managed K8s — najlepszy managed K8s), BigQuery (data warehouse), Cloud Run (serverless containers), Cloud SQL, Anthos (hybrid multi-cloud), IAM, Cloud Armor (WAF/DDoS). GKE Autopilot = serverless K8s." },
+    { q: "Co to Azure DevOps?", a: "Platforma CI/CD: Boards (Jira-like), Repos (Git), Pipelines (CI/CD YAML), Artifacts (package registry), Test Plans. Integracja z GitHub. Alternatywa do GitLab/Jenkins w ekosystemie Microsoft. Pipelines jako kod (azure-pipelines.yml)." },
+    { q: "Co to Azure Managed Identity i kiedy używać?", a: "<span class='tip-badge tip-info'>INFO</span> Eliminuje potrzebę przechowywania credentials w aplikacji. System-assigned: powiązana z konkretnym zasobem (VM, App Service), usuwana z zasobem. User-assigned: niezależna, przypisywalna do wielu zasobów. Użycie: VM odczytuje Key Vault przez MSI bez passwords. <code>az login --identity</code> w skrypcie. Najlepsza praktyka dla aplikacji w Azure." },
+    { q: "Co to GKE Autopilot vs Standard?", a: "Autopilot: Google zarządza całym klastrem (nodes, nodepool scaling, security). Pay per Pod resources. Brak dostępu do node. Ograniczenia: niektóre DaemonSety, privileged containers. Standard: pełna kontrola nad node pools, dowolna konfiguracja. Autopilot zalecany dla nowych projektów — prostszy, tańszy przy rzadkim użyciu." }
+  ]},
+
+  { title: "Jenkins — CI/CD", cat: "CI/CD", qa: [
+    { q: "Co to Jenkins i jak działa?", a: "<span class='tip-badge tip-info'>INFO</span> Open-source serwer CI/CD. Master (controller) rozdziela zadania na agentów (nodes). Joby: Freestyle (klikanie), Pipeline (kod). Wyzwalacze: SCM polling, webhook (GitHub/GitLab), cron, upstream job. Przechowuje artefakty i historię buildów." },
+    { q: "Czym różni się Declarative od Scripted Pipeline?", a: "Declarative: nowszy, ścisła składnia (<code>pipeline { agent any; stages { stage('Build') { steps { ... } } } }</code>), łatwiejszy do czytania, ograniczone możliwości. Scripted: Groovy DSL (<code>node { stage('Build') { ... } }</code>), pełna elastyczność, trudniejszy. Declarative = standard." },
+    { q: "Jak wygląda typowy Jenkinsfile?", a: "<code>pipeline { agent any\nstages {\n  stage('Checkout') { steps { checkout scm } }\n  stage('Build') { steps { sh 'mvn package' } }\n  stage('Test') { steps { sh 'mvn test' } }\n  stage('Deploy') { steps { sh './deploy.sh' } }\n}\npost { always { junit 'target/surefire-reports/*.xml' } } }</code>" },
+    { q: "Co to Jenkins Agent / Node?", a: "Agent wykonuje zadania zlecone przez controller. Typy: permanent node (SSH, JNLP), dynamic (Docker, Kubernetes — tworzone na żądanie, niszczone po buildzie). <code>agent { docker 'maven:3.8' }</code> uruchamia build w kontenerze Docker. <code>agent { label 'linux' }</code> dla konkretnego node." },
+    { q: "Jak zarządzać sekretami w Jenkins?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> Credentials Store (Manage Jenkins → Credentials). Typy: Username/Password, SSH Key, Secret Text, Certificate. W Pipeline: <code>withCredentials([usernamePassword(credentialsId: 'my-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) { sh 'docker login -u $USER -p $PASS' }</code>." },
+    { q: "Co to shared library w Jenkins?", a: "Reużywalny kod Groovy dostępny we wszystkich pipeline'ach organizacji. Struktura: <code>vars/myStep.groovy</code> (globalne funkcje), <code>src/org/myorg/Helper.groovy</code> (klasy). Import: <code>@Library('my-shared-lib') _</code>. Konfiguracja w Manage Jenkins → System → Global Pipeline Libraries." },
+    { q: "Jak działają triggery i webhooks w Jenkins?", a: "<span class='tip-badge tip-cmd'>CMD</span> Declarative: <code>triggers { pollSCM('H/5 * * * *') }</code> lub <code>triggers { githubPush() }</code>. Webhook: GitHub → Settings → Webhooks → <code>https://jenkins/github-webhook/</code>. Multibranch Pipeline automatycznie wykrywa nowe branche i PR." },
+    { q: "Co to Blue Ocean i Jenkins X?", a: "Blue Ocean: nowoczesny UI dla Jenkins Pipeline (wizualizacja, PR support). Jenkins X: CI/CD na Kubernetes — automatyczne pipeline'y, GitOps, Preview Environments. Alternatywy do Jenkins w K8s: Tekton (cloud-native), ArgoCD Workflows, GitHub Actions." },
+    { q: "Jak skalować Jenkins?", a: "Horizontal scaling: więcej agentów (stałych lub dynamicznych przez Kubernetes plugin). Master HA: nie ma natywnej HA — użyj backup + szybki restore, lub Jenkins Operator na K8s. Artifact storage: Nexus/Artifactory zamiast lokalnego. Folder/View organizacja jobów." },
+    { q: "Jak zabezpieczyć Jenkins?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> Matrix-based security lub Role Strategy plugin. CSRF protection włączone. Agents przez JNLP (nie SSH gdy możliwe). Skrypt Security Manager: Script Approval dla Groovy. Regularne aktualizacje pluginów. Reverse proxy (Nginx) przed Jenkins. LDAP/SAML auth." },
+    { q: "Jak debugować failed pipeline?", a: "<code>Replay</code>: uruchom pipeline ponownie z edycją (bez commitu). Console Output: pełne logi. <code>sh 'set -x; ./script.sh'</code> dla verbose shell. <code>echo env</code> lub <code>printenv</code>. <code>input</code> step: zatrzymaj pipeline do ręcznej inspekcji. Blue Ocean timeline dla wizualizacji." },
+    { q: "Co to Multibranch Pipeline?", a: "Automatycznie tworzy pipeline dla każdego brancha/PR w repo. Wykrywa Jenkinsfile w każdym branchu. PR preview environments. Branch indexing: co ile sprawdzać nowe branche. Orphaned branch strategy: usuń stare joby. Integracja z GitHub/GitLab/Bitbucket." }
+  ]},
+
+  { title: "Jenkins — Mid Level", cat: "CI/CD", qa: [
+    { q: "Jak zaimplementować parallel stages w Jenkinsfile?", a: "<code>stage('Tests') { parallel { stage('Unit') { steps { sh 'mvn test' } } stage('Integration') { steps { sh 'mvn verify' } } stage('Lint') { steps { sh 'npm run lint' } } } }</code>. <code>failFast: true</code> — przerwij wszystkie gdy jeden fail. Parallel stages znacząco skracają czas buildu." },
+    { q: "Jak zarządzać zależnościami między jobami?", a: "<span class='tip-badge tip-info'>INFO</span> Upstream/downstream triggers: <code>triggers { upstream(upstreamProjects: 'build-job', threshold: hudson.model.Result.SUCCESS) }</code>. <code>build job: 'deploy', parameters: [string(name: 'VERSION', value: env.BUILD_NUMBER)]</code>. Odczekaj: <code>waitForBuildReady</code>. Pipeline as a service: orchestracja przez główny pipeline." },
+    { q: "Co to stash/unstash i kiedy używać?", a: "<code>stash name: 'artifacts', includes: 'target/*.jar'</code> — zapisuje pliki między stage'ami na różnych agentach. <code>unstash 'artifacts'</code> — przywraca. Używaj gdy parallel stages na różnych nodeach potrzebują tych samych plików. Alternatywa: artefakty w Nexus/Artifactory dla trwałego przechowywania." },
+    { q: "Jak obsłużyć failed build — retry, post, timeout?", a: "<code>retry(3) { sh './flaky-test.sh' }</code>. Timeout: <code>timeout(time: 10, unit: 'MINUTES') { ... }</code>. Post: <code>post { failure { mail to: 'team@x.com', subject: 'FAILED' } always { junit '**/*.xml' } success { archiveArtifacts 'dist/**' } }</code>. <code>catchError(buildResult: 'UNSTABLE') { ... }</code>." },
+    { q: "Jak używać Groovy w Jenkinsfile bezpiecznie?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> Scripted Pipeline: pełne Groovy ale wymaga Script Approval lub @NonCPS dla metod niedozwolonych w sandboxie. <code>@NonCPS</code> dla metod serializacji. Unikaj dużej logiki w Jenkinsfile — przenieś do shared library. Groovy w Declarative: <code>script { ... }</code> blok. Nigdy nie drukuj sekretów przez <code>echo</code>." },
+    { q: "Co to Docker Pipeline plugin i jak budować obrazy?", a: "<code>pipeline { agent { docker { image 'maven:3.8' args '-v /root/.m2:/root/.m2' } } ... }</code>. Build image: <code>def img = docker.build('myapp:${env.BUILD_NUMBER}')</code>. Push: <code>docker.withRegistry('https://registry', 'creds-id') { img.push() img.push('latest') }</code>. Multi-stage: <code>docker.build('myapp', '--target production .')</code>." },
+    { q: "Jak integrować Jenkins z Kubernetes (agents)?", a: "Kubernetes plugin: dynamiczne pody jako agenci. <code>podTemplate(containers: [containerTemplate(name: 'maven', image: 'maven:3.8')]) { node(POD_LABEL) { container('maven') { sh 'mvn package' } } }</code>. Declarative: <code>agent { kubernetes { yaml '''spec: containers: ...''' } }</code>. Pod niszczony po buildzie — czyste środowisko za każdym razem." },
+    { q: "Jak testować Jenkinsfile lokalnie?", a: "<span class='tip-badge tip-cmd'>CMD</span> Jenkins CLI: <code>java -jar jenkins-cli.jar -s http://jenkins declarative-linter < Jenkinsfile</code>. Replay w UI — edytuj i uruchom bez commitu. act (GitHub Actions lokalnie) nie działa dla Jenkins. Najlepiej: dedykowany Jenkins dev + Multibranch dla feature branchy. Unit test shared library: JenkinsPipelineUnit framework." },
+    { q: "Jak zaimplementować deployment pipeline z approvalem?", a: "<code>stage('Deploy Prod') { input { message 'Deploy to production?' id 'proceed' ok 'Deploy' submitter 'devops-team' submitterParameter 'APPROVER' } steps { echo \"Approved by ${APPROVER}\" sh './deploy-prod.sh' } }</code>. Timeout na input: <code>timeout(time: 1, unit: 'HOURS') { input ... }</code>. Po przekroczeniu: abort lub auto-deploy." },
+    { q: "Co to Jenkins Configuration as Code (JCasC)?", a: "Plugin pozwalający definiować całą konfigurację Jenkins jako YAML (<code>jenkins.yaml</code>). Credentials, security, nodes, plugins, tools — wszystko jako kod. GitOps dla Jenkins. <code>CASC_JENKINS_CONFIG=/path/to/jenkins.yaml</code>. Razem z Job DSL plugin = pełna powtarzalna instalacja. Niezbędne przy Jenkins na K8s (Operator)." },
+    { q: "Jak zintegrować Jenkins z SonarQube?", a: "<span class='tip-badge tip-cmd'>CMD</span> Plugin: SonarQube Scanner. Konfiguracja: Manage Jenkins → SonarQube servers. Pipeline: <code>withSonarQubeEnv('MySonar') { sh 'mvn sonar:sonar' }</code>. Quality Gate: <code>waitForQualityGate abortPipeline: true</code>. SonarQube webhook → Jenkins callback. Metryki: coverage, duplications, bugs, code smells, security hotspots." },
+    { q: "Jak działa Jenkins distributed builds architektura?", a: "Controller (master): orchestracja, UI, scheduling — nie wykonuje build tasks. Agents (nodes): faktyczna praca. Połączenie: SSH (controller → agent), JNLP/WebSocket (agent → controller). Kubernetes plugin: agenci jako ephemeral pods. Etykiety (labels): <code>agent { label 'linux && docker' }</code>. Controller bez agenta = nieproduktyjna architektura (controller nie powinien budować)." }
+  ]},
+
+  { title: "Prometheus / Grafana / Splunk", cat: "Monitoring", qa: [
+    { q: "Jak działa Prometheus?", a: "Pull model — scrape endpointów <code>/metrics</code> co interval (default 15s). Dane w wbudowanej TSDB (2h local, długoterminowo: Thanos/Cortex/VictoriaMetrics). PromQL do zapytań. Alertmanager do powiadomień (email/PagerDuty/Slack). Service Discovery: K8s, Consul, EC2." },
+    { q: "Kluczowe typy metryk Prometheus?", a: "<span class='tip-badge tip-info'>INFO</span> Counter: monotonicznie rosnący (żądania, błędy). Gauge: chwilowa wartość (pamięć, temperatura). Histogram: rozkład (latencja z buckets, <code>_bucket, _sum, _count</code>). Summary: percentyle po stronie klienta. <code>rate(counter[5m])</code> dla counter." },
+    { q: "Przykłady PromQL?", a: "<code>rate(http_requests_total[5m])</code> — RPS. <code>histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))</code> — p99 latency. <code>100 - (avg by (instance)(rate(node_cpu_seconds_total{mode='idle'}[5m])) * 100)</code> — CPU usage." },
+    { q: "Grafana — jak skonfigurować?", a: "<span class='tip-badge tip-cmd'>CMD</span> Data sources: Prometheus, Loki, Elasticsearch, CloudWatch, InfluxDB. Panels: Time series, Stat, Gauge, Table, Heatmap. Variables: <code>$job, $instance</code>. Alerting: kontakty (Slack/PagerDuty) + routing policies. Provisioning przez YAML/JSON." },
+    { q: "Co to Alertmanager i jak konfigurować routing?", a: "Odbiera alerty z Prometheus, deduplikuje, grupuje, routuje. <code>route → receiver</code>. Silencing: <code>amtool silence add alertname=DiskFull</code>. Inhibition: blokuj alerty gdy inny aktywny. Grupowanie: <code>group_by: [alertname, cluster]</code>." },
+    { q: "Co to Loki i kiedy zamiast Elasticsearch?", a: "Loki: logi bez pełnego indeksowania (tylko labels jak Prometheus), tanie storage (S3/GCS), LogQL. Mały footprint, tanie. Elasticsearch: pełnotekstowe wyszukiwanie, bogatszy query language, lepszy dla SIEM/complex analytics. Loki + Prometheus + Grafana = PLG stack." },
+    { q: "Co to Splunk i jak się różni od open-source?", a: "Komercyjny, własny format zoptymalizowany, SPL (Search Processing Language), świetny SIEM, ML toolkit, przemysłowe wsparcie. Drogi (per GB ingested). Open-source alternatywy: ELK/OpenSearch, Grafana+Loki. Splunk dominuje w dużych enterprise i security." },
+    { q: "Co to node_exporter i jakie metryki zbiera?", a: "Eksporter metryk OS-level dla Prometheus. CPU, pamięć, dyski (IOPS, utilization), sieć (bytes, errors, drops), filesystem, load average, NTP offset, systemd unit state. Instalacja: <code>apt/dnf install prometheus-node-exporter</code>. Endpoint: <code>:9100/metrics</code>." },
+    { q: "Co to OpenTelemetry?", a: "CNCF standard dla observability: traces, metrics, logs. Vendor-neutral SDK + collector. Zastępuje OpenTracing + OpenCensus. Eksportuj do Jaeger, Tempo (traces), Prometheus (metrics), Loki/ES (logs). Auto-instrumentation dla popularnych frameworków." },
+    { q: "Co to SLI, SLO, SLA i jak je definiować?", a: "<span class='tip-badge tip-info'>INFO</span> SLI (Service Level Indicator): miara jakości — latencja p99, error rate, availability. SLO (Service Level Objective): target dla SLI — np. 99.9% availability, p99 < 200ms. SLA (Service Level Agreement): kontrakt z karami za niedotrzymanie SLO. Error budget = 1 - SLO. Gdy błąd budżet się kończy → stop feature releases, focus na reliability. PromQL dla SLO: <code>sum(rate(http_requests_total{code!~'5..'}[5m])) / sum(rate(http_requests_total[5m]))</code>." },
+    { q: "Jak skonfigurować alerting w Prometheus?", a: "<span class='tip-badge tip-cmd'>CMD</span> Alert rules w <code>rules.yml</code>: <code>groups:\n- name: linux\n  rules:\n  - alert: DiskFull\n    expr: disk_free_percent < 10\n    for: 5m\n    labels:\n      severity: critical\n    annotations:\n      summary: 'Dysk {{ $labels.mountpoint }} prawie pełny'</code>. Alertmanager routing: severity → PagerDuty (critical), Slack (warning). Inhibit: jeśli node down, wycisz alerty jego serwisów." }
+  ]},
+
+  { title: "PostgreSQL — Administracja", cat: "Database", qa: [
+    { q: "Jak połączyć się z PostgreSQL i podstawowe polecenia?", a: "<span class='tip-badge tip-cmd'>CMD</span> <code>psql -U postgres -h localhost -d mydb</code>. Meta-komendy: <code>\\l</code> (bazy), <code>\\c mydb</code> (połącz), <code>\\dt</code> (tabele), <code>\\d tabela</code> (struktura), <code>\\du</code> (użytkownicy), <code>\\timing</code> (czas zapytań), <code>\\e</code> (edytor), <code>\\q</code> (wyjście)." },
+    { q: "Jak zarządzać użytkownikami i uprawnieniami?", a: "<code>CREATE USER jan WITH PASSWORD 'tajne';</code>. <code>CREATE ROLE devs;</code>. <code>GRANT SELECT, INSERT ON tabela TO jan;</code>. <code>GRANT devs TO jan;</code>. <code>GRANT CONNECT ON DATABASE mydb TO jan;</code>. <code>REVOKE ALL ON tabela FROM jan;</code>. <code>\\dp tabela</code> — sprawdź uprawnienia." },
+    { q: "Co to pg_hba.conf i jak działa autentykacja?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> Host-Based Authentication. Format: <code>TYPE DATABASE USER ADDRESS METHOD</code>. Metody: <code>trust</code> (bez hasła), <code>md5/scram-sha-256</code> (hasło), <code>peer</code> (OS user), <code>ldap</code>, <code>cert</code>. Kolejność wierszy ma znaczenie — pierwszy match wygrywa. Reload: <code>pg_ctlcluster reload</code>." },
+    { q: "Jak wykonać backup i restore?", a: "<code>pg_dump -U postgres mydb > backup.sql</code>. Kompresja: <code>pg_dump -Fc mydb > backup.dump</code>. Restore: <code>psql mydb < backup.sql</code> lub <code>pg_restore -d mydb backup.dump</code>. Cały serwer: <code>pg_dumpall > all.sql</code>. PITR: WAL archiving + <code>pg_basebackup</code>." },
+    { q: "Co to VACUUM i ANALYZE?", a: "<span class='tip-badge tip-info'>INFO</span> VACUUM: usuwa dead tuples (MVCC zostawia stare wersje wierszy). VACUUM FULL: przepisuje tabelę (blokuje). ANALYZE: aktualizuje statystyki planera. Autovacuum: daemon robi to automatycznie. <code>pg_stat_user_tables</code>: sprawdź n_dead_tup. Bloat monitoring: pgstattuple." },
+    { q: "Co to WAL (Write-Ahead Logging)?", a: "Dziennik transakcji — zmiany trafiają najpierw do WAL (Write-Ahead Log), potem do heap. Zapewnia: durability (ACID), crash recovery, replikacja (streaming/logical), PITR. <code>wal_level</code>: minimal, replica, logical. <code>archive_mode</code> + <code>archive_command</code> dla backupu ciągłego." },
+    { q: "Jak skonfigurować replikację streaming?", a: "Primary: <code>wal_level=replica</code>, <code>max_wal_senders=5</code>, utwórz replication user, wpis w pg_hba. Standby: <code>pg_basebackup -h primary -U replicator -D /data</code>, plik <code>standby.signal</code>, <code>primary_conninfo</code> w postgresql.conf. Monitor: <code>pg_stat_replication</code> na primary." },
+    { q: "Co to connection pooling i kiedy używać?", a: "PostgreSQL tworzy nowy proces per połączenie — kosztowne przy setkach connections. Poolery: PgBouncer (transaction/session/statement pooling), Pgpool-II (też HA, load balance). PgBouncer transaction pooling: najlepsze dla OLTP. Sprawdź: <code>pg_stat_activity</code>." },
+    { q: "Jak monitorować wydajność PostgreSQL?", a: "<span class='tip-badge tip-cmd'>CMD</span> <code>pg_stat_activity</code> (aktywne zapytania). <code>pg_stat_statements</code> (top N zapytań po czasie). <code>pg_locks</code> (blokady). <code>EXPLAIN (ANALYZE, BUFFERS) SELECT ...</code> (plan wykonania). Slow query log: <code>log_min_duration_statement = 1000</code>. Narzędzia: pgBadger, pgAnalyze." },
+    { q: "Co to indeksy w PostgreSQL?", a: "Typy: B-tree (domyślny, =, <, >), Hash (=), GIN (tablice, JSONB, full-text), GiST (geometria, ranges), BRIN (duże tabele z korelacją). <code>CREATE INDEX CONCURRENTLY idx ON tabela(kolumna);</code> — nie blokuje. Partial index: <code>WHERE status='active'</code>. <code>\\d tabela</code> pokaże indeksy." },
+    { q: "Jak działa EXPLAIN i jak czytać plan?", a: "<code>EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) SELECT ...;</code>. Kluczowe: Seq Scan (brak indeksu), Index Scan, Index Only Scan (wydajny), Nested Loop/Hash Join/Merge Join. Koszt: <code>cost=startup..total</code>. Actual rows vs estimated — duża różnica = stare statystyki (ANALYZE)." },
+    { q: "Co to MVCC w PostgreSQL?", a: "MVCC (Multi-Version Concurrency Control) — każda transakcja widzi snapshot danych — czytanie nie blokuje pisania i odwrotnie. Dead tuples: stare wersje wierszy po UPDATE/DELETE. VACUUM je usuwa. Transaction ID wraparound: niebezpieczny po ~2mld transakcji — autovacuum chroni. <code>age(relfrozenxid)</code>." },
+    { q: "Jak zarządzać konfiguracją postgresql.conf?", a: "Kluczowe parametry: <code>shared_buffers</code> (25% RAM), <code>effective_cache_size</code> (50-75% RAM), <code>work_mem</code> (per sort/hash — ostrożnie), <code>maintenance_work_mem</code>, <code>max_connections</code>, <code>wal_buffers</code>, <code>checkpoint_completion_target=0.9</code>. Narzędzie: PGTune (pgtune.leopard.in.ua)." }
+  ]},
+
+  { title: "PostgreSQL — Mid Level", cat: "Database", qa: [
+    { q: "Jak działa Query Planner i jak go oszukać gdy się myli?", a: "<span class='tip-badge tip-info'>INFO</span> Planer bazuje na statystykach (pg_statistic). Gdy szacunki złe: <code>ANALYZE tabela</code>, zwiększ <code>default_statistics_target</code> (domyślnie 100, max 10000) dla kolumn z nierównomiernym rozkładem: <code>ALTER TABLE t ALTER COLUMN c SET STATISTICS 500</code>. Plan hints: <code>enable_seqscan=off</code> (sesja). pg_hint_plan extension." },
+    { q: "Co to bloat i jak go wykrywać/naprawiać?", a: "Table/index bloat: martwe krotki nie zebrane przez autovacuum. Sprawdź: <code>SELECT schemaname, tablename, n_dead_tup, n_live_tup FROM pg_stat_user_tables ORDER BY n_dead_tup DESC</code>. pgstattuple extension dla dokładnych danych. Naprawa: <code>VACUUM VERBOSE tabela</code>. Bez locka: <code>pg_repack</code> extension. Index bloat: <code>REINDEX CONCURRENTLY idx</code>." },
+    { q: "Jak zarządzać długimi transakcjami i ich skutkami?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> Długa transakcja blokuje VACUUM (nie może zebrać dead tuples starszych niż jej xmin) → bloat. <code>SELECT pid, age(clock_timestamp(), xact_start), query FROM pg_stat_activity WHERE xact_start IS NOT NULL ORDER BY xact_start</code>. Ustaw <code>idle_in_transaction_session_timeout = '10min'</code>. Lock monitoring: <code>pg_locks JOIN pg_stat_activity</code>." },
+    { q: "Co to logical replication i czym różni się od streaming?", a: "Streaming: fizyczna kopia WAL (byte-by-byte) — tylko ta sama wersja PG, standby read-only. Logical: replika zmian per tabelę (INSERT/UPDATE/DELETE zdekodowane) — różne wersje PG, selektywne tabele, standby może zapisywać inne tabele, używane do migracji i pub/sub. <code>CREATE PUBLICATION / SUBSCRIPTION</code>. pglogical, Debezium (CDC)." },
+    { q: "Jak działa connection pooling w szczegółach — PgBouncer tryby?", a: "Session pooling: połączenie serwera trzymane przez całą sesję klienta (jak bez poolera). Transaction pooling: połączenie zwalniane po każdej transakcji — najefektywniejsze, ale: prepared statements, SET, advisory locks nie działają bez modyfikacji apki. Statement pooling: per statement — bardzo restrykcyjny. Transaction = standard dla OLTP." },
+    { q: "Jak zdiagnozować i rozwiązać deadlock?", a: "<code>SELECT * FROM pg_locks WHERE NOT granted</code>. Logi: <code>log_deadlocks = on</code> — PostgreSQL loguje automatycznie. Deadlock gdy dwa procesy czekają na siebie w kółko — PG wykrywa i rollbackuje jednego. Rozwiązanie: stała kolejność lockowania tabel/wierszy w aplikacji. <code>lock_timeout = '5s'</code> jako zabezpieczenie." },
+    { q: "Co to pg_stat_statements i jak używać?", a: "<span class='tip-badge tip-cmd'>CMD</span> Extension do śledzenia statystyk zapytań. <code>CREATE EXTENSION pg_stat_statements;</code>. <code>shared_preload_libraries = 'pg_stat_statements'</code>. Top 10 najwolniejszych: <code>SELECT query, calls, mean_exec_time, total_exec_time FROM pg_stat_statements ORDER BY mean_exec_time DESC LIMIT 10;</code>. Reset: <code>SELECT pg_stat_statements_reset();</code>." },
+    { q: "Jak zaimplementować row-level security (RLS)?", a: "<code>ALTER TABLE orders ENABLE ROW LEVEL SECURITY;</code>. Policy: <code>CREATE POLICY user_orders ON orders USING (user_id = current_user_id());</code>. <code>FORCE ROW LEVEL SECURITY</code> — dotyczy też właściciela tabeli. Użycie: multi-tenant SaaS, dane per użytkownik. Performance: indeks na kolumnie policy + <code>SET app.current_user_id = '123'</code>." },
+    { q: "Jak działają foreign keys i ich wpływ na wydajność?", a: "FK = constraint + trigger sprawdzający referencję. <span class='tip-badge tip-warn'>WAŻNE</span> Brak indeksu na FK w tabeli zależnej → Seq Scan przy DELETE/UPDATE rodzica (sprawdza czy są dzieci). <code>SELECT conname, conrelid::regclass FROM pg_constraint WHERE contype='f' AND NOT EXISTS (SELECT 1 FROM pg_index WHERE indrelid=conrelid AND indkey[0]=conkey[1])</code> — znajdź FK bez indeksów." },
+    { q: "Co to materialized views i kiedy używać?", a: "<code>CREATE MATERIALIZED VIEW mv_stats AS SELECT ... FROM big_table GROUP BY ...;</code>. Refresh: <code>REFRESH MATERIALIZED VIEW CONCURRENTLY mv_stats;</code> — bez blokowania reads. Indeksy na MV możliwe. Używaj gdy: drogie zapytania agregujące, dane mogą być nieaktualne przez chwilę. Nie odświeżają się automatycznie — użyj pg_cron lub trigger." },
+    { q: "Jak tunować autovacuum per tabelę?", a: "Globalny autovacuum może być za powolny dla dużych tabel z dużą rotacją. Per tabela: <code>ALTER TABLE orders SET (autovacuum_vacuum_scale_factor = 0.01, autovacuum_vacuum_threshold = 1000, autovacuum_analyze_scale_factor = 0.005);</code>. Monitoruj: <code>pg_stat_user_tables.last_autovacuum</code>. <code>autovacuum_vacuum_cost_delay = 2ms</code> dla szybszego vacuum." }
+  ]},
+
+  { title: "SQL — Zapytania i Optymalizacja", cat: "Database", qa: [
+    { q: "Co to ACID i jak PostgreSQL to realizuje?", a: "<span class='tip-badge tip-info'>INFO</span> Atomicity (wszystko lub nic — rollback), Consistency (integralność danych), Isolation (transakcje nie widzą wzajemnych zmian — MVCC), Durability (zatwierdzony = trwały — WAL). Poziomy izolacji: READ COMMITTED (domyślny), REPEATABLE READ, SERIALIZABLE." },
+    { q: "Typy JOIN — różnice?", a: "INNER JOIN: tylko pasujące wiersze. LEFT JOIN: wszystkie z lewej + pasujące z prawej (NULL gdy brak). RIGHT JOIN: odwrotnie. FULL OUTER JOIN: wszystkie z obu stron. CROSS JOIN: iloczyn kartezjański. SELF JOIN: tabela z samą sobą. <code>NATURAL JOIN</code>: po kolumnach o tej samej nazwie (unikaj)." },
+    { q: "Co to CTE (Common Table Expressions)?", a: "<code>WITH aktywni AS (SELECT id, imie FROM uzytkownicy WHERE status='aktywny'), zamowienia AS (SELECT user_id, COUNT(*) cnt FROM orders GROUP BY user_id) SELECT a.imie, z.cnt FROM aktywni a JOIN zamowienia z ON a.id=z.user_id;</code>. Czytelność, reużycie, recursive CTE dla hierarchii." },
+    { q: "Co to Window Functions?", a: "<code>SELECT imie, pensja, AVG(pensja) OVER (PARTITION BY dzial) AS avg_dzial, RANK() OVER (ORDER BY pensja DESC) AS ranking FROM pracownicy;</code>. Funkcje: ROW_NUMBER, RANK, DENSE_RANK, LAG, LEAD, FIRST_VALUE, LAST_VALUE, SUM/AVG OVER (ROWS BETWEEN ...)." },
+    { q: "Różnica GROUP BY vs PARTITION BY?", a: "GROUP BY: agreguje wiersze → mniej wierszy w wyniku. PARTITION BY (window function): oblicza per partycję ale zachowuje wszystkie wiersze. Przykład: GROUP BY zwróci 1 wiersz per dział, PARTITION BY zwróci każdego pracownika z dodanym avg działu." },
+    { q: "Jak optymalizować wolne zapytania?", a: "<span class='tip-badge tip-warn'>WAŻNE</span> 1) EXPLAIN ANALYZE — znajdź Seq Scan na dużej tabeli. 2) Dodaj brakujący indeks. 3) Sprawdź statystyki (ANALYZE). 4) Unikaj funkcji na indeksowanych kolumnach w WHERE (<code>WHERE LOWER(email)</code> omija indeks — użyj functional index). 5) Ogranicz SELECT *. 6) Sprawdź N+1 queries." },
+    { q: "Co to subquery vs JOIN — kiedy co lepsze?", a: "JOIN często szybszy — planer może wybrać lepszy algorytm. Correlated subquery (wykonuje się per wiersz) = wolna. EXISTS zazwyczaj szybszy niż IN z subquery dla dużych zbiorów. WITH (CTE) w PostgreSQL 12+ może być inlined przez planer. EXPLAIN pokaże różnicę." },
+    { q: "Co to indeksy złożone i kiedy używać?", a: "Indeks na wielu kolumnach: <code>CREATE INDEX ON orders(user_id, created_at);</code>. Kolumnność ma znaczenie — indeks użyteczny dla zapytań z prefiksem (user_id, lub user_id + created_at). Covering index: <code>INCLUDE (status)</code> — Index Only Scan bez dostępu do heap." },
+    { q: "Co to UPSERT i jak używać?", a: "<code>INSERT INTO users (id, email, updated_at) VALUES (1, 'jan@x.com', NOW()) ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, updated_at = EXCLUDED.updated_at;</code>. <code>ON CONFLICT DO NOTHING</code> — ignoruj duplikaty. Wymaga unique constraint lub unique index na kolumnie konfliktu." },
+    { q: "Co to partycjonowanie tabel?", a: "Duże tabele dzielone na mniejsze partycje (physical). Typy: RANGE (<code>PARTITION BY RANGE (created_at)</code> — per miesiąc), LIST (per region/status), HASH. Korzyści: szybsze query pruning, szybsze VACUUM, archiwizacja (DROP PARTITION). PostgreSQL 10+ deklaratywne partycjonowanie." },
+    { q: "Jak działają transakcje i savepoints?", a: "<code>BEGIN;</code> ... <code>COMMIT;</code> lub <code>ROLLBACK;</code>. Savepoint: <code>SAVEPOINT sp1;</code> ... <code>ROLLBACK TO sp1;</code> — częściowy rollback. DDL w transakcji: PostgreSQL wspiera (<code>CREATE TABLE</code> w BEGIN/COMMIT). <code>SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;</code>." },
+    { q: "Co to JSON i JSONB w PostgreSQL?", a: "JSON: przechowuje tekst (zachowuje kolejność, spacje). JSONB: binarny (indeksowalny, szybsze query, bez kolejności kluczy). Operatory: <code>-></code> (JSON object), <code>->></code> (text), <code>#></code> (ścieżka). GIN index: <code>CREATE INDEX ON tabela USING gin(dane jsonb_path_ops);</code>. Funkcje: <code>jsonb_set, jsonb_agg, json_build_object</code>." }
+  ]}
+];
+
+let activeTag = null;
+let searchVal = "";
+let answered = {};
+
+function initUI() {
+  const allQ = DATA.reduce((a,d)=>a+d.qa.length, 0);
+  document.getElementById("hdr-topics").textContent = DATA.length;
+  document.getElementById("hdr-questions").textContent = allQ;
+  renderTags();
+  renderSidebar();
+  render();
+}
+
+function renderTags() {
+  const row = document.getElementById("tag-row");
+  const cats = [...new Set(DATA.map(d=>d.cat))];
+  row.innerHTML = cats.map(c => {
+    const info = CATS[c];
+    const isActive = activeTag === c;
+    const style = isActive
+      ? `background:${info.bg};border-color:${info.color};color:${info.color}`
+      : `border-color:${info.border};color:${info.color}`;
+    return `<span class="tag" style="${style}" onclick="toggleTag('${c}')">${c}</span>`;
+  }).join('');
+}
+
+function toggleTag(cat) {
+  activeTag = activeTag === cat ? null : cat;
+  renderTags();
+  renderSidebar();
+  render();
+}
+
+function clearFilters() {
+  activeTag = null;
+  document.getElementById("srch").value = "";
+  searchVal = "";
+  renderTags();
+  renderSidebar();
+  render();
+}
+
+function renderSidebar() {
+  const cats = [...new Set(DATA.map(d=>d.cat))];
+  let html = '';
+  cats.forEach(cat => {
+    const items = DATA.filter(d => d.cat === cat);
+    const visible = items.filter(d => matchesFilter(d));
+    if (!visible.length) return;
+    html += `<div class="side-label">${cat}</div>`;
+    visible.forEach(d => {
+      const info = CATS[d.cat];
+      const isActive = activeTag === d.cat;
+      html += `<div class="side-item${isActive?' active':''}" onclick="scrollTo('sec_${esc(d.title)}')">
+        <div class="side-dot" style="background:${info.color}"></div>
+        <span>${d.title}</span>
+        <span class="side-count">${d.qa.length}</span>
+      </div>`;
+    });
+  });
+  document.getElementById("sidebar").innerHTML = html;
+}
+
+function esc(s) { return s.replace(/[^a-z0-9]/gi,'_'); }
+
+function matchesFilter(d) {
+  if (activeTag && d.cat !== activeTag) return false;
+  if (!searchVal) return true;
+  const sv = searchVal.toLowerCase();
+  if (d.title.toLowerCase().includes(sv)) return true;
+  return d.qa.some(qa => qa.q.toLowerCase().includes(sv) || qa.a.toLowerCase().includes(sv));
+}
+
+function filteredQA(d) {
+  if (!searchVal) return d.qa;
+  const sv = searchVal.toLowerCase();
+  if (d.title.toLowerCase().includes(sv)) return d.qa;
+  return d.qa.filter(qa => qa.q.toLowerCase().includes(sv) || qa.a.toLowerCase().includes(sv));
+}
+
+function render() {
+  const items = DATA.filter(matchesFilter);
+  const totalQ = items.reduce((a,d) => a + filteredQA(d).length, 0);
+  document.getElementById("result-bar").textContent = `${items.length} tematów · ${totalQ} pytań`;
+
+  if (!items.length) {
+    document.getElementById("grid").innerHTML = '<div class="no-results">Brak wyników — spróbuj innej frazy lub zresetuj filtry</div>';
+    return;
+  }
+
+  document.getElementById("grid").innerHTML = items.map(d => {
+    const info = CATS[d.cat];
+    const id = `sec_${esc(d.title)}`;
+    const qa = filteredQA(d);
+    return `<div class="section" id="${id}">
+      <div class="section-header" onclick="toggleSection('${id}')">
+        <div class="sec-dot" style="background:${info.color}"></div>
+        <span class="sec-title">${d.title}</span>
+        <span class="sec-cat" style="background:${info.bg};border-color:${info.border};color:${info.color}">${d.cat}</span>
+        <span class="sec-qcount">${qa.length} pytań</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="section-body" id="body_${id}">
+        ${qa.map((qa, i) => {
+          const qid = `q_${esc(d.title)}_${i}`;
+          return `<div class="qa-item">
+            <div class="q-row" onclick="toggleAnswer('${qid}')">
+              <span class="q-badge">Q${i+1}</span>
+              <span class="q-text">${qa.q}</span>
+            </div>
+            <div class="a-row" id="${qid}">
+              <div class="a-text">${qa.a}</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleSection(id) {
+  const header = document.querySelector(`#${id} .section-header`);
+  const body = document.getElementById(`body_${id}`);
+  header.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
+function toggleAnswer(qid) {
+  document.getElementById(qid).classList.toggle('open');
+}
+
+function scrollTo(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const header = el.querySelector('.section-header');
+    const body = el.querySelector('.section-body');
+    if (header && !header.classList.contains('open')) {
+      header.classList.add('open');
+      body.classList.add('open');
+    }
+  }
+}
+
+document.getElementById("srch").addEventListener("input", e => {
+  searchVal = e.target.value.toLowerCase();
+  render();
+  renderSidebar();
+});
+
+document.getElementById("srch").addEventListener("keydown", e => {
+  if (e.key === "Enter") smartSearch();
+});
+
+// ── Synonimy i aliasy techniczne ──────────────────────────────────────────────
+const SYNONYMS = {
+  "loadbalancer": ["load balancer","haproxy","nginx","lb","balansowanie","balancer","proxy"],
+  "load balancer": ["loadbalancer","haproxy","nginx","balansowanie"],
+  "haproxy": ["load balancer","loadbalancer","proxy","balancer"],
+  "nginx": ["load balancer","proxy","reverse proxy","web server"],
+  "reverse proxy": ["nginx","haproxy","proxy"],
+  "szyfrowanie": ["luks","ssl","tls","gpg","kryptografia","encrypt","cert","certyfikat"],
+  "certyfikat": ["ssl","tls","cert","pki","ca","openssl","x509","certbot"],
+  "ssl": ["tls","certyfikat","cert","https","openssl","pki"],
+  "tls": ["ssl","certyfikat","cert","https","openssl"],
+  "backup": ["kopia zapasowa","pg_dump","pgbackrest","barman","pitr","wal","archiwum"],
+  "replikacja": ["replica","streaming","replication","standby","wal","patroni","primary"],
+  "replica": ["replikacja","standby","streaming replication","wal"],
+  "wydajnosc": ["performance","tuning","optymalizacja","bottleneck","profiling","perf"],
+  "wydajność": ["performance","tuning","optymalizacja","bottleneck","profiling","perf"],
+  "performance": ["wydajność","tuning","optymalizacja","profiling","perf"],
+  "siec": ["network","sieć","networking","ip","route","vlan","dns","tcp"],
+  "sieć": ["network","networking","ip","route","vlan","dns","tcp","firewall"],
+  "network": ["sieć","networking","ip","route","dns","tcp"],
+  "kontener": ["container","docker","podman","kubernetes","k8s"],
+  "container": ["kontener","docker","podman","k8s"],
+  "bezpieczenstwo": ["security","bezpieczeństwo","selinux","firewall","audit","hardening"],
+  "bezpieczeństwo": ["security","selinux","firewall","audit","hardening"],
+  "security": ["bezpieczeństwo","selinux","firewall","audit","hardening","ssl","tls"],
+  "automatyzacja": ["ansible","terraform","puppet","chef","automation"],
+  "monitorowanie": ["monitoring","prometheus","grafana","alertmanager","metrics","logi"],
+  "monitoring": ["monitorowanie","prometheus","grafana","alertmanager","metrics"],
+  "logi": ["logs","journald","rsyslog","loki","splunk","log","journalctl"],
+  "logs": ["logi","journald","rsyslog","loki","splunk","journalctl"],
+  "zmienne": ["variable","variables","vars","env","environment","priorytety zmiennych"],
+  "restart": ["reload","stop","start","service","systemd","daemon"],
+  "uprawnienia": ["permissions","chmod","chown","acl","selinux","capabilities"],
+  "permissions": ["uprawnienia","chmod","chown","acl"],
+  "deploy": ["wdrożenie","deployment","rolling","release","ci/cd","pipeline"],
+  "wdrożenie": ["deploy","deployment","rolling","release"],
+  "skrypt": ["bash","script","shell","automatyzacja"],
+  "bash": ["skrypt","shell","script","pętla","loop"],
+  "debug": ["diagnoza","diagnostyka","troubleshoot","debug","problem"],
+  "diagnoza": ["debug","diagnostyka","troubleshoot"],
+  "indeks": ["index","indexes","indices","wydajność","explain","query"],
+  "index": ["indeks","indexes","explain","query","wydajność"],
+  "zapytanie": ["query","sql","select","explain","indeks"],
+  "query": ["zapytanie","sql","select","explain"],
+  "dysk": ["disk","storage","lvm","xfs","ext4","filesystem","io"],
+  "storage": ["dysk","disk","lvm","xfs","nfs","san","ceph"],
+  "pamiec": ["memory","ram","swap","oom","hugepages"],
+  "pamięć": ["memory","ram","swap","oom","hugepages"],
+  "memory": ["pamięć","ram","swap","oom"],
+  "chmura": ["cloud","aws","azure","gcp","ec2","s3"],
+  "cloud": ["chmura","aws","azure","gcp"],
+  "pipeline": ["jenkins","ci/cd","github actions","gitlab","build"],
+  "sekret": ["secret","vault","credentials","password","hasło","szyfrowanie"],
+  "secret": ["sekret","vault","credentials","password","hasło"],
+  "hasło": ["password","secret","vault","credentials"],
+};
+
+// ── Tokenizuj zapytanie + rozwiń synonimy ────────────────────────────────────
+function expandQuery(raw) {
+  const tokens = raw.toLowerCase().trim().split(/\s+/).filter(t => t.length > 1);
+  const expanded = new Set(tokens);
+  tokens.forEach(t => {
+    (SYNONYMS[t] || []).forEach(s => expanded.add(s));
+    // częściowe dopasowanie kluczy synonimów
+    Object.keys(SYNONYMS).forEach(k => {
+      if (k.includes(t) || t.includes(k)) {
+        expanded.add(k);
+        (SYNONYMS[k] || []).forEach(s => expanded.add(s));
+      }
+    });
+  });
+  return { tokens, expanded: [...expanded] };
+}
+
+// ── Scoring: ile tokenów/synonimów trafia w Q lub A ─────────────────────────
+function scoreItem(qa, sectionTitle, expanded, tokens) {
+  const qLow = qa.q.toLowerCase();
+  const aLow = qa.a.replace(/<[^>]+>/g,'').toLowerCase();
+  const tLow = sectionTitle.toLowerCase();
+  let score = 0;
+
+  tokens.forEach(t => {
+    if (qLow.includes(t)) score += 6;       // dokładne trafienie w pytanie
+    if (tLow.includes(t)) score += 4;       // trafienie w tytuł sekcji
+    if (aLow.includes(t)) score += 2;       // trafienie w odpowiedź
+  });
+  expanded.forEach(t => {
+    if (qLow.includes(t)) score += 2;
+    if (tLow.includes(t)) score += 2;
+    if (aLow.includes(t)) score += 1;
+  });
+  return score;
+}
+
+// ── Podświetl tokeny w tekście ───────────────────────────────────────────────
+function highlight(text, tokens) {
+  let out = text;
+  tokens.filter(t => t.length > 2).forEach(t => {
+    const re = new RegExp('(' + t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi');
+    out = out.replace(re, '<mark>$1</mark>');
+  });
+  return out;
+}
+
+// ── Główna funkcja inteligentnego wyszukiwania ───────────────────────────────
+function smartSearch() {
+  const raw = document.getElementById("srch").value.trim();
+  if (!raw) return;
+
+  const panel = document.getElementById("ai-panel");
+  const textEl = document.getElementById("ai-text");
+  const btn = document.getElementById("ai-ask-btn");
+
+  panel.classList.add("open");
+  textEl.innerHTML = '<span style="color:var(--muted);font-size:.8rem">Szukam...</span>';
+
+  const { tokens, expanded } = expandQuery(raw);
+
+  // Zbierz i posortuj wyniki
+  const results = [];
+  DATA.forEach(d => {
+    d.qa.forEach(qa => {
+      const s = scoreItem(qa, d.title, expanded, tokens);
+      if (s > 0) results.push({ score: s, qa, section: d.title, cat: d.cat });
+    });
+  });
+  results.sort((a, b) => b.score - a.score);
+  const top = results.slice(0, 5);
+
+  if (!top.length) {
+    textEl.innerHTML = `<span style="color:var(--muted)">Brak wyników dla <strong>"${raw}"</strong> — spróbuj inaczej lub użyj filtrów kategorii.</span><button class="ai-close" onclick="closeAI()">✕</button>`;
+    btn.disabled = false;
+    return;
+  }
+
+  const catColors = { "System":"#10b981","Security":"#ef4444","Infra/IaC":"#3b82f6","Containers":"#8b5cf6","Cloud":"#f59e0b","Monitoring":"#14b8a6","Networking":"#ec4899","Storage/HA":"#a78bfa","CI/CD":"#f97316","Database":"#06b6d4" };
+
+  const html = top.map((r, i) => {
+    const col = catColors[r.cat] || '#8492a6';
+    const qHighlighted = highlight(r.qa.q, tokens);
+    const aClean = r.qa.a.replace(/<span[^>]*>.*?<\/span>/g,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+    const aShort = aClean.length > 280 ? aClean.slice(0,280)+'…' : aClean;
+    const aHighlighted = highlight(aShort, tokens);
+    return `<div class="sr-card" style="--acc:${col}">
+      <div class="sr-meta"><span class="sr-num">${i+1}</span><span class="sr-sec">${r.section}</span><span class="sr-cat" style="color:${col};border-color:${col}40">${r.cat}</span></div>
+      <div class="sr-q">${qHighlighted}</div>
+      <div class="sr-a">${aHighlighted}</div>
+    </div>`;
+  }).join('');
+
+  const expandedShown = expanded.filter(t => !tokens.includes(t)).slice(0,6);
+  const synonymLine = expandedShown.length
+    ? `<div class="sr-synonyms">Rozszerzone o: ${expandedShown.map(t=>`<code>${t}</code>`).join(' ')}</div>`
+    : '';
+
+  textEl.innerHTML = `
+    <div class="sr-header">
+      <span>Znaleziono <strong>${results.length}</strong> wyników dla <strong>"${raw}"</strong> — top ${top.length}</span>
+      <button class="ai-close" onclick="closeAI()">✕</button>
+    </div>
+    ${synonymLine}
+    ${html}
+  `;
+}
+
+function askAI() { smartSearch(); }
+
+async function askClaude() {
+  const raw = document.getElementById("srch").value.trim();
+  if (!raw) { document.getElementById("srch").focus(); return; }
+
+  const panel = document.getElementById("ai-panel");
+  const textEl = document.getElementById("ai-text");
+  const btn = document.getElementById("ai-claude-btn");
+
+  panel.classList.add("open");
+  btn.disabled = true;
+  textEl.innerHTML = `<span style="color:var(--muted);font-size:.8rem">⏳ Claude odpowiada...</span>`;
+
+  // Build context from DATA
+  const context = DATA.map(d =>
+    d.title + ":\n" + d.qa.map(qa => "Q: " + qa.q + "\nA: " + qa.a.replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim()).join("\n")
+  ).join("\n\n");
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: "Jesteś pomocnym asystentem DevOps/Linux. Odpowiadaj po polsku, zwięźle i konkretnie. Używaj <code> dla komend. Bazuj głównie na dostarczonej ściądze, ale możesz uzupełniać wiedzą własną.\n\nŚCIĄGA:\n" + context,
+        messages: [{ role: "user", content: raw }]
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+      textEl.innerHTML = `<div style="color:#ef4444;font-size:.85rem">⚠️ Błąd API: ${data.error.message}</div><button class="ai-close" onclick="closeAI()">✕</button>`;
+      btn.disabled = false;
+      return;
+    }
+
+    const answer = data.content[0].text;
+
+    // Convert markdown-like to HTML
+    const html = answer
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/^### (.+)$/gm, "<h4 style='margin:.5em 0 .2em;color:var(--accent)'>$1</h4>")
+      .replace(/^## (.+)$/gm, "<h3 style='margin:.5em 0 .2em;color:var(--accent)'>$1</h3>")
+      .replace(/^- (.+)$/gm, "<li>$1</li>")
+      .replace(/(<li>.*<\/li>)/gs, "<ul style='margin:.3em 0 .3em 1.2em;padding:0'>$1</ul>")
+      .replace(/\n\n/g, "<br><br>")
+      .replace(/\n/g, "<br>");
+
+    textEl.innerHTML = `
+      <div class="sr-header">
+        <span>✦ <strong>Claude AI</strong> odpowiada na: <strong>"${raw}"</strong></span>
+        <button class="ai-close" onclick="closeAI()">✕</button>
+      </div>
+      <div style="font-size:.85rem;line-height:1.6;padding:.5rem 0">${html}</div>
+    `;
+  } catch (err) {
+    textEl.innerHTML = `<div style="color:#ef4444;font-size:.85rem">⚠️ Błąd połączenia: ${err.message}</div><button class="ai-close" onclick="closeAI()">✕</button>`;
+  }
+
+  btn.disabled = false;
+}
+
+function formatAIResponse(text) {
+  return text
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => `<pre><code>${code.trim()}</code></pre>`)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/^### (.+)$/gm, "<strong style='font-size:.85rem;color:#a78bfa'>$1</strong>")
+    .replace(/^## (.+)$/gm, "<strong style='font-size:.88rem;color:#8b5cf6'>$1</strong>")
+    .replace(/^# (.+)$/gm, "<strong style='font-size:.9rem;color:#8b5cf6'>$1</strong>")
+    .replace(/\n\n/g, "<br><br>").replace(/\n/g, "<br>");
+}
+
+function closeAI() {
+  document.getElementById("ai-panel").classList.remove("open");
+  document.getElementById("ai-text").innerHTML = "";
+}
+
+initUI();
+</script>
+</body>
+</html>
